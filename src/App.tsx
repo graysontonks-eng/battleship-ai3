@@ -162,6 +162,8 @@ function App() {
     endY: 0,
   });
   const projectileTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const impactFlashTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lockDelayTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingShotRef = useRef<(() => void) | null>(null);
 
   // Banner state for "DIRECT HIT!" and "Ship Destroyed!"
@@ -497,7 +499,10 @@ function App() {
 
     // Launch projectile toward target cell (after brief target lock delay)
     const lockDelay = 150; // half of 300ms lock duration
-    setTimeout(() => {
+    lockDelayTimerRef.current = setTimeout(() => {
+      // Guard: don't fire if sim was paused/stopped during the lock delay
+      if (!simRef.current.running) return;
+
       setProjectile({
         active: true,
         direction,
@@ -513,8 +518,9 @@ function App() {
       // Store the pending shot application with pre-computed target
       pendingShotRef.current = () => {
         applyShot(who, target);
-        // Clear projectile after a brief impact flash
-        projectileTimerRef.current = setTimeout(() => {
+        // Clear projectile after a brief impact flash (separate ref to avoid cleanup conflicts)
+        if (impactFlashTimerRef.current) clearTimeout(impactFlashTimerRef.current);
+        impactFlashTimerRef.current = setTimeout(() => {
           setProjectile((prev) => ({ ...prev, active: false, result: null }));
         }, Math.max(50, flightDuration * 0.3));
       };
@@ -543,9 +549,17 @@ function App() {
         clearTimeout(simTimerRef.current);
         simTimerRef.current = null;
       }
+      if (lockDelayTimerRef.current) {
+        clearTimeout(lockDelayTimerRef.current);
+        lockDelayTimerRef.current = null;
+      }
       if (projectileTimerRef.current) {
         clearTimeout(projectileTimerRef.current);
         projectileTimerRef.current = null;
+      }
+      if (impactFlashTimerRef.current) {
+        clearTimeout(impactFlashTimerRef.current);
+        impactFlashTimerRef.current = null;
       }
     };
   }, [sim.running, sim.speed, sim.turn, phase, doSimStep, playerBoard, aiBoard, playerShips, aiShips, aiState]);
