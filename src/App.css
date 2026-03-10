@@ -955,6 +955,227 @@
   100% { transform: scale(1.3); opacity: 0; }
 }
 
+/* Sunk ship popup overlay */
+.sunk-ship-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 150;
+  pointer-events: none;
+  background: radial-gradient(ellipse at center, rgba(0, 20, 60, 0.85) 0%, rgba(0, 10, 40, 0.6) 50%, transparent 100%);
+  animation: sunk-overlay-fade 2.5s ease-in-out forwards;
+}
+
+.sunk-ship-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.2rem;
+  animation: sunk-zoom-in 0.6s cubic-bezier(0.2, 0.8, 0.3, 1.2) forwards;
+}
+
+.sunk-ship-svg {
+  width: 300px;
+  height: 120px;
+  filter: drop-shadow(0 0 15px rgba(100, 170, 255, 0.5)) drop-shadow(0 0 30px rgba(50, 100, 200, 0.3));
+  animation: sunk-ship-sink 2.5s ease-in-out forwards;
+}
+
+.sunk-ship-banner {
+  font-size: 2.2rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  text-align: center;
+  padding: 0.4rem 1.5rem;
+  border-radius: 4px;
+  animation: sunk-text-appear 2.5s ease-in-out forwards;
+}
+
+.sunk-ship-banner.player-sunk {
+  color: #4af;
+  text-shadow:
+    0 0 15px rgba(68, 170, 255, 0.8),
+    0 0 30px rgba(50, 130, 220, 0.5),
+    0 0 60px rgba(30, 100, 200, 0.3),
+    2px 2px 4px rgba(0, 0, 0, 0.9);
+}
+
+.sunk-ship-banner.enemy-sunk {
+  color: #f55;
+  text-shadow:
+    0 0 15px rgba(255, 85, 85, 0.8),
+    0 0 30px rgba(220, 50, 50, 0.5),
+    0 0 60px rgba(200, 30, 30, 0.3),
+    2px 2px 4px rgba(0, 0, 0, 0.9);
+}
+
+@keyframes sunk-overlay-fade {
+  0% { opacity: 0; }
+  12% { opacity: 1; }
+  72% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+@keyframes sunk-zoom-in {
+  0% { transform: scale(0.2) translateY(40px); opacity: 0; }
+  50% { transform: scale(1.1) translateY(-5px); opacity: 1; }
+  100% { transform: scale(1) translateY(0); opacity: 1; }
+}
+
+@keyframes sunk-ship-sink {
+  0% { transform: translateY(-20px) rotate(0deg); opacity: 0; }
+  15% { transform: translateY(0) rotate(0deg); opacity: 1; }
+  60% { transform: translateY(5px) rotate(2deg); opacity: 1; }
+  80% { transform: translateY(15px) rotate(5deg); opacity: 0.8; }
+  100% { transform: translateY(40px) rotate(10deg); opacity: 0; }
+}
+
+@keyframes sunk-text-appear {
+  0% { transform: scale(0.5); opacity: 0; }
+  15% { transform: scale(1.15); opacity: 1; }
+  25% { transform: scale(1); }
+  72% { transform: scale(1); opacity: 1; }
+  100% { transform: scale(1.1); opacity: 0; }
+}
+
+/* Fleet Scoreboard */
+.fleet-scoreboard {
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  gap: 0;
+  margin: 0.5rem auto;
+  padding: 0.6rem 1rem;
+  background: linear-gradient(135deg, rgba(20, 30, 50, 0.9), rgba(10, 20, 40, 0.95));
+  border: 1px solid rgba(100, 170, 255, 0.2);
+  border-radius: 8px;
+  max-width: 750px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(100, 170, 255, 0.1);
+}
+
+.fleet-scoreboard-side {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.fleet-scoreboard-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.fleet-side-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: #8af;
+}
+
+.ai-side .fleet-side-label {
+  color: #f88;
+}
+
+.fleet-remaining {
+  font-size: 0.65rem;
+  color: #8899aa;
+  font-weight: 600;
+}
+
+.fleet-ship-icons {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.fleet-ship-icon {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  transition: opacity 0.3s ease;
+}
+
+.fleet-ship-icon.sunk {
+  opacity: 0.35;
+}
+
+.fleet-ship-icon.sunk .fleet-ship-bar {
+  background: #633 !important;
+  box-shadow: none !important;
+}
+
+.fleet-ship-icon.sunk .fleet-ship-name {
+  text-decoration: line-through;
+  color: #666;
+}
+
+.fleet-ship-bar {
+  height: 6px;
+  background: linear-gradient(90deg, #4a8, #5b9);
+  border-radius: 3px;
+  box-shadow: 0 0 4px rgba(80, 180, 130, 0.4);
+  transition: background 0.3s ease;
+}
+
+.ai-side .fleet-ship-bar {
+  background: linear-gradient(90deg, #c55, #d66);
+  box-shadow: 0 0 4px rgba(200, 80, 80, 0.4);
+}
+
+.fleet-ship-name {
+  font-size: 0.6rem;
+  color: #aab;
+  white-space: nowrap;
+}
+
+.fleet-scoreboard-divider {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.2rem;
+  padding: 0 0.8rem;
+  min-width: 60px;
+}
+
+.fleet-score-circle {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  font-weight: 900;
+  color: #fff;
+}
+
+.player-circle {
+  background: radial-gradient(circle, #3a8, #286);
+  box-shadow: 0 0 8px rgba(50, 170, 130, 0.5);
+}
+
+.ai-circle {
+  background: radial-gradient(circle, #c44, #933);
+  box-shadow: 0 0 8px rgba(200, 70, 70, 0.5);
+}
+
+.fleet-vs {
+  font-size: 0.6rem;
+  color: #667;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
 /* Game actions */
 .game-actions {
   margin-top: 1rem;

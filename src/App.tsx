@@ -63,6 +63,12 @@ interface ExplosionState {
   y: number;
 }
 
+interface SunkShipPopupState {
+  active: boolean;
+  shipName: string;
+  side: 'player' | 'ai';
+}
+
 function App() {
   // Game phase
   const [phase, setPhase] = useState<GamePhase>('placement');
@@ -153,6 +159,10 @@ function App() {
   // Vader popup state (shown when AI sinks 4/5 player ships)
   const [vaderPopup, setVaderPopup] = useState(false);
   const vaderTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Sunk ship popup state (unique image per ship type)
+  const [sunkShipPopup, setSunkShipPopup] = useState<SunkShipPopupState>({ active: false, shipName: '', side: 'player' });
+  const sunkShipTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Board grid refs for calculating projectile coordinates
   const playerGridRef = useRef<HTMLDivElement | null>(null);
@@ -248,6 +258,15 @@ function App() {
     }, 1000);
   }, []);
 
+  // Show sunk ship popup with unique image per ship type
+  const showSunkShipImage = useCallback((shipName: string, side: 'player' | 'ai') => {
+    if (sunkShipTimerRef.current) clearTimeout(sunkShipTimerRef.current);
+    setSunkShipPopup({ active: true, shipName, side });
+    sunkShipTimerRef.current = setTimeout(() => {
+      setSunkShipPopup({ active: false, shipName: '', side: 'player' });
+    }, 2500);
+  }, []);
+
   // Show explosion at a cell (pre-compute position to avoid ref access in render)
   const showExplosion = useCallback((row: number, col: number, isPlayerBoard: boolean) => {
     if (explosionTimerRef.current) clearTimeout(explosionTimerRef.current);
@@ -295,6 +314,7 @@ function App() {
         addMessage(`Player fired at ${coordLabel}: Hit and sunk ${result.shipName}!`, 'sunk');
         showBanner('SHIP DESTROYED!', 'sunk');
         showExplosion(target.row, target.col, false);
+        if (result.shipName) showSunkShipImage(result.shipName, 'ai');
       } else if (result.result === 'hit') {
         addMessage(`Player fired at ${coordLabel}: Hit on ${result.shipName}!`, 'hit');
         showBanner('DIRECT HIT!', 'hit');
@@ -336,6 +356,7 @@ function App() {
         addMessage(`AI fired at ${coordLabel}: Hit and sunk your ${result.shipName}!`, 'sunk');
         showBanner('SHIP DESTROYED!', 'sunk');
         showExplosion(target.row, target.col, true);
+        if (result.shipName) showSunkShipImage(result.shipName, 'player');
 
         // Check if AI has sunk 4 out of 5 player ships — trigger Vader popup
         const sunkCount = result.ships.filter((s) => s.hits.every((h) => h)).length;
@@ -368,7 +389,7 @@ function App() {
       setTurn('player');
       setSim((prev) => ({ ...prev, turn: 'player' }));
     }
-  }, [addMessage, showBanner, showExplosion, showSplash]);
+  }, [addMessage, showBanner, showExplosion, showSplash, showSunkShipImage]);
 
   // Execute one simulation step: launch projectile, then apply shot on impact
   const doSimStep = useCallback(() => {
@@ -472,6 +493,17 @@ function App() {
         );
         showBanner('SHIP DESTROYED!', 'sunk');
         showExplosion(target.row, target.col, true);
+        if (result.shipName) showSunkShipImage(result.shipName, 'player');
+
+        // Check if AI has sunk 4 out of 5 player ships — trigger Vader popup
+        const sunkCount = result.ships.filter((s) => s.hits.every((h) => h)).length;
+        if (sunkCount === 4) {
+          if (vaderTimerRef.current) clearTimeout(vaderTimerRef.current);
+          setVaderPopup(true);
+          vaderTimerRef.current = setTimeout(() => {
+            setVaderPopup(false);
+          }, 3500);
+        }
       } else if (result.result === 'hit') {
         addMessage(
           `AI fired at ${coordLabel}: Hit on your ${result.shipName}!`,
@@ -484,18 +516,6 @@ function App() {
         showSplash(target.row, target.col, true);
       }
 
-      // Check if AI has sunk 4 out of 5 player ships — trigger Vader popup
-      if (result.result === 'sunk') {
-        const sunkCount = result.ships.filter((s) => s.hits.every((h) => h)).length;
-        if (sunkCount === 4) {
-          if (vaderTimerRef.current) clearTimeout(vaderTimerRef.current);
-          setVaderPopup(true);
-          vaderTimerRef.current = setTimeout(() => {
-            setVaderPopup(false);
-          }, 3500);
-        }
-      }
-
       if (allShipsSunk(result.ships)) {
         setPhase('gameOver');
         addMessage('The AI sunk all your ships! You lose.', 'win');
@@ -505,7 +525,7 @@ function App() {
       setTurn('player');
       isProcessingShot.current = false;
     },
-    [addMessage, showBanner, showExplosion, showSplash]
+    [addMessage, showBanner, showExplosion, showSplash, showSunkShipImage]
   );
 
   // Player attack (manual mode)
@@ -536,6 +556,7 @@ function App() {
         );
         showBanner('SHIP DESTROYED!', 'sunk');
         showExplosion(row, col, false);
+        if (result.shipName) showSunkShipImage(result.shipName, 'ai');
       } else if (result.result === 'hit') {
         addMessage(
           `You fired at ${coordLabel}: Hit on ${result.shipName}!`,
@@ -562,7 +583,7 @@ function App() {
         doAITurn(aiState, playerBoard, playerShips);
       }, 600);
     },
-    [phase, turn, aiBoard, aiShips, aiState, playerBoard, playerShips, addMessage, doAITurn, sim.running, showBanner, showExplosion, showSplash]
+    [phase, turn, aiBoard, aiShips, aiState, playerBoard, playerShips, addMessage, doAITurn, sim.running, showBanner, showExplosion, showSplash, showSunkShipImage]
   );
 
   // Auto-place ships and start auto-sim
@@ -586,6 +607,7 @@ function App() {
     setExplosion({ active: false, x: 0, y: 0 });
     setSplash({ active: false, x: 0, y: 0 });
     setVaderPopup(false);
+    setSunkShipPopup({ active: false, shipName: '', side: 'player' });
 
     setSim({
       running: true,
@@ -625,6 +647,7 @@ function App() {
     setExplosion({ active: false, x: 0, y: 0 });
     setSplash({ active: false, x: 0, y: 0 });
     setVaderPopup(false);
+    setSunkShipPopup({ active: false, shipName: '', side: 'player' });
     setMessages([{ text: 'Place your ships to begin!', type: 'info' }]);
     setSim({
       running: false,
@@ -821,36 +844,239 @@ function App() {
     </div>
   );
 
-  // Render ship legend
-  const renderShipLegend = (ships: Ship[]) => (
-    <div className="ship-legend">
-      {SHIP_CONFIGS.map((config) => {
-        const ship = ships.find((s) => s.name === config.name);
-        const isSunk = ship ? ship.hits.every((h) => h) : false;
-        const isPlaced = !!ship;
-
-        return (
-          <div key={config.name} className="ship-legend-item">
-            <div className="ship-legend-blocks">
-              {Array.from({ length: config.size }, (_, i) => (
-                <div
-                  key={i}
-                  className={`ship-legend-block${isSunk ? ' sunk-block' : isPlaced ? ' placed' : ''}`}
-                />
-              ))}
-            </div>
-            <span style={{ textDecoration: isSunk ? 'line-through' : 'none' }}>
-              {config.name}
-            </span>
-          </div>
-        );
-      })}
-    </div>
-  );
-
   // Score tracker
   const playerSunk = aiShips.filter((s) => s.hits.every((h) => h)).length;
   const aiSunk = playerShips.filter((s) => s.hits.every((h) => h)).length;
+
+  // Render inline SVG for each sinking ship type
+  const renderSunkShipSVG = (shipName: string) => {
+    switch (shipName) {
+      case 'Carrier':
+        return (
+          <svg viewBox="0 0 320 120" xmlns="http://www.w3.org/2000/svg" className="sunk-ship-svg">
+            {/* Large aircraft carrier sinking at an angle */}
+            <defs>
+              <linearGradient id="carrierGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" stopColor="#556" />
+                <stop offset="100%" stopColor="#334" />
+              </linearGradient>
+            </defs>
+            <g transform="rotate(12, 160, 60)">
+              {/* Hull */}
+              <path d="M20,70 L40,50 L280,50 L300,60 L300,80 L280,90 L40,90 L20,80 Z" fill="url(#carrierGrad)" stroke="#778" strokeWidth="1.5" />
+              {/* Flight deck */}
+              <rect x="50" y="45" width="220" height="8" rx="2" fill="#667" stroke="#889" strokeWidth="0.5" />
+              {/* Island superstructure */}
+              <rect x="190" y="28" width="35" height="22" rx="2" fill="#445" stroke="#667" strokeWidth="1" />
+              <rect x="200" y="18" width="15" height="12" rx="1" fill="#556" stroke="#778" strokeWidth="0.5" />
+              {/* Antenna mast */}
+              <line x1="207" y1="18" x2="207" y2="5" stroke="#aab" strokeWidth="1.5" />
+              <line x1="202" y1="10" x2="212" y2="10" stroke="#aab" strokeWidth="0.5" />
+              {/* Aircraft on deck */}
+              <rect x="70" y="46" width="12" height="5" rx="1" fill="#889" />
+              <rect x="100" y="46" width="12" height="5" rx="1" fill="#889" />
+              <rect x="130" y="46" width="12" height="5" rx="1" fill="#889" />
+              {/* Water line & waves */}
+              <path d="M10,85 Q30,78 50,85 Q70,92 90,85 Q110,78 130,85 Q150,92 170,85 Q190,78 210,85 Q230,92 250,85 Q270,78 290,85 Q310,92 320,85" fill="none" stroke="#4af" strokeWidth="2" opacity="0.6" />
+              {/* Sinking water splash */}
+              <ellipse cx="280" cy="88" rx="25" ry="8" fill="rgba(100,180,255,0.3)" />
+            </g>
+          </svg>
+        );
+      case 'Battleship':
+        return (
+          <svg viewBox="0 0 300 120" xmlns="http://www.w3.org/2000/svg" className="sunk-ship-svg">
+            {/* Heavy battleship with guns sinking stern-first */}
+            <defs>
+              <linearGradient id="battleGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" stopColor="#5a5a6a" />
+                <stop offset="100%" stopColor="#3a3a4a" />
+              </linearGradient>
+            </defs>
+            <g transform="rotate(8, 150, 60)">
+              {/* Hull */}
+              <path d="M30,65 L50,50 L250,50 L270,60 L270,78 L250,88 L50,88 L30,78 Z" fill="url(#battleGrad)" stroke="#7a7a8a" strokeWidth="1.5" />
+              {/* Superstructure */}
+              <rect x="120" y="30" width="60" height="22" rx="3" fill="#4a4a5a" stroke="#6a6a7a" strokeWidth="1" />
+              <rect x="135" y="18" width="30" height="14" rx="2" fill="#555565" stroke="#777787" strokeWidth="0.5" />
+              {/* Main gun turrets (fore and aft) */}
+              <circle cx="80" cy="55" r="10" fill="#4a4a5a" stroke="#6a6a7a" strokeWidth="1" />
+              <rect x="70" y="52" width="30" height="6" rx="2" fill="#555" />
+              <circle cx="220" cy="55" r="10" fill="#4a4a5a" stroke="#6a6a7a" strokeWidth="1" />
+              <rect x="210" y="52" width="30" height="6" rx="2" fill="#555" />
+              {/* Funnel */}
+              <rect x="155" y="22" width="12" height="10" rx="1" fill="#3a3a4a" stroke="#5a5a6a" strokeWidth="0.5" />
+              {/* Mast */}
+              <line x1="150" y1="18" x2="150" y2="2" stroke="#aab" strokeWidth="1.5" />
+              {/* Water */}
+              <path d="M20,82 Q40,75 60,82 Q80,89 100,82 Q120,75 140,82 Q160,89 180,82 Q200,75 220,82 Q240,89 260,82 Q280,75 290,82" fill="none" stroke="#4af" strokeWidth="2" opacity="0.6" />
+              <ellipse cx="255" cy="85" rx="20" ry="6" fill="rgba(100,180,255,0.3)" />
+            </g>
+          </svg>
+        );
+      case 'Cruiser':
+        return (
+          <svg viewBox="0 0 280 120" xmlns="http://www.w3.org/2000/svg" className="sunk-ship-svg">
+            {/* Sleek cruiser listing to one side */}
+            <defs>
+              <linearGradient id="cruiserGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" stopColor="#5c6370" />
+                <stop offset="100%" stopColor="#3c4350" />
+              </linearGradient>
+            </defs>
+            <g transform="rotate(-10, 140, 60)">
+              {/* Hull - sleeker profile */}
+              <path d="M25,62 L55,48 L225,48 L255,58 L255,72 L225,82 L55,82 L25,72 Z" fill="url(#cruiserGrad)" stroke="#7c8390" strokeWidth="1.5" />
+              {/* Bridge */}
+              <rect x="110" y="30" width="40" height="20" rx="3" fill="#4c5360" stroke="#6c7380" strokeWidth="1" />
+              <rect x="120" y="22" width="20" height="10" rx="2" fill="#5c6370" />
+              {/* Gun turret fore */}
+              <circle cx="75" cy="52" r="7" fill="#4c5360" stroke="#6c7380" strokeWidth="1" />
+              <rect x="68" y="49" width="22" height="5" rx="1.5" fill="#555" />
+              {/* Gun turret aft */}
+              <circle cx="200" cy="52" r="7" fill="#4c5360" stroke="#6c7380" strokeWidth="1" />
+              <rect x="193" y="49" width="22" height="5" rx="1.5" fill="#555" />
+              {/* Mast */}
+              <line x1="130" y1="22" x2="130" y2="8" stroke="#aab" strokeWidth="1" />
+              {/* Water */}
+              <path d="M15,76 Q35,69 55,76 Q75,83 95,76 Q115,69 135,76 Q155,83 175,76 Q195,69 215,76 Q235,83 255,76 Q265,69 275,76" fill="none" stroke="#4af" strokeWidth="2" opacity="0.6" />
+              <ellipse cx="40" cy="74" rx="18" ry="5" fill="rgba(100,180,255,0.3)" />
+            </g>
+          </svg>
+        );
+      case 'Submarine':
+        return (
+          <svg viewBox="0 0 280 120" xmlns="http://www.w3.org/2000/svg" className="sunk-ship-svg">
+            {/* Submarine diving/sinking beneath waves */}
+            <defs>
+              <linearGradient id="subGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" stopColor="#445" />
+                <stop offset="100%" stopColor="#223" />
+              </linearGradient>
+            </defs>
+            {/* Water surface */}
+            <path d="M0,50 Q20,43 40,50 Q60,57 80,50 Q100,43 120,50 Q140,57 160,50 Q180,43 200,50 Q220,57 240,50 Q260,43 280,50" fill="none" stroke="#4af" strokeWidth="2.5" opacity="0.7" />
+            <rect x="0" y="50" width="280" height="70" fill="rgba(20,60,120,0.25)" />
+            <g transform="rotate(15, 140, 70)">
+              {/* Submarine hull (cigar shape) */}
+              <ellipse cx="140" cy="70" rx="100" ry="18" fill="url(#subGrad)" stroke="#667" strokeWidth="1.5" />
+              {/* Conning tower */}
+              <rect x="125" y="48" width="30" height="14" rx="4" fill="#334" stroke="#556" strokeWidth="1" />
+              {/* Periscope */}
+              <line x1="140" y1="48" x2="140" y2="32" stroke="#889" strokeWidth="2" />
+              <rect x="137" y="30" width="6" height="4" rx="1" fill="#778" />
+              {/* Propeller */}
+              <circle cx="242" cy="70" r="4" fill="#556" />
+              <line x1="242" y1="62" x2="242" y2="78" stroke="#778" strokeWidth="1.5" />
+              <line x1="234" y1="66" x2="250" y2="74" stroke="#778" strokeWidth="1.5" />
+              {/* Dive planes */}
+              <rect x="55" y="64" width="15" height="3" rx="1" fill="#556" transform="rotate(-10,62,65)" />
+              <rect x="55" y="74" width="15" height="3" rx="1" fill="#556" transform="rotate(10,62,75)" />
+              {/* Bubbles rising */}
+              <circle cx="120" cy="45" r="3" fill="rgba(150,200,255,0.4)" />
+              <circle cx="130" cy="38" r="2" fill="rgba(150,200,255,0.3)" />
+              <circle cx="145" cy="42" r="2.5" fill="rgba(150,200,255,0.35)" />
+              <circle cx="155" cy="35" r="1.5" fill="rgba(150,200,255,0.25)" />
+            </g>
+          </svg>
+        );
+      case 'Destroyer':
+        return (
+          <svg viewBox="0 0 260 120" xmlns="http://www.w3.org/2000/svg" className="sunk-ship-svg">
+            {/* Fast destroyer breaking apart */}
+            <defs>
+              <linearGradient id="destroyerGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" stopColor="#606878" />
+                <stop offset="100%" stopColor="#404858" />
+              </linearGradient>
+            </defs>
+            <g transform="rotate(-6, 130, 60)">
+              {/* Lean, fast hull */}
+              <path d="M20,60 L50,46 L210,46 L240,55 L240,68 L210,78 L50,78 L20,68 Z" fill="url(#destroyerGrad)" stroke="#808898" strokeWidth="1.5" />
+              {/* Small bridge */}
+              <rect x="100" y="30" width="30" height="18" rx="2" fill="#505868" stroke="#707888" strokeWidth="1" />
+              <rect x="108" y="24" width="14" height="8" rx="1" fill="#606878" />
+              {/* Single gun fore */}
+              <circle cx="65" cy="50" r="6" fill="#505868" stroke="#707888" strokeWidth="1" />
+              <rect x="58" y="47" width="18" height="4" rx="1" fill="#555" />
+              {/* Torpedo tubes midship */}
+              <rect x="150" y="50" width="20" height="6" rx="2" fill="#505868" stroke="#707" strokeWidth="0.5" />
+              <rect x="155" y="51" width="3" height="4" rx="0.5" fill="#333" />
+              <rect x="160" y="51" width="3" height="4" rx="0.5" fill="#333" />
+              <rect x="165" y="51" width="3" height="4" rx="0.5" fill="#333" />
+              {/* Depth charge rack aft */}
+              <rect x="200" y="52" width="12" height="5" rx="1" fill="#454d5d" />
+              <circle cx="203" cy="54" r="2" fill="#333" />
+              <circle cx="209" cy="54" r="2" fill="#333" />
+              {/* Mast */}
+              <line x1="115" y1="24" x2="115" y2="10" stroke="#aab" strokeWidth="1" />
+              {/* Water */}
+              <path d="M10,72 Q30,65 50,72 Q70,79 90,72 Q110,65 130,72 Q150,79 170,72 Q190,65 210,72 Q230,79 250,72" fill="none" stroke="#4af" strokeWidth="2" opacity="0.6" />
+              {/* Smoke/fire from damage */}
+              <ellipse cx="180" cy="38" rx="12" ry="8" fill="rgba(80,80,80,0.4)" />
+              <ellipse cx="185" cy="30" rx="8" ry="6" fill="rgba(60,60,60,0.3)" />
+              <ellipse cx="175" cy="42" rx="5" ry="4" fill="rgba(255,120,30,0.3)" />
+            </g>
+          </svg>
+        );
+      default:
+        return null;
+    }
+  };
+
+  // Render the scoreboard showing remaining ships for each side
+  const renderScoreboard = () => {
+    const playerShipStatus = SHIP_CONFIGS.map((config) => {
+      const ship = playerShips.find((s) => s.name === config.name);
+      const isSunk = ship ? ship.hits.every((h) => h) : false;
+      return { name: config.name, size: config.size, sunk: isSunk };
+    });
+    const aiShipStatus = SHIP_CONFIGS.map((config) => {
+      const ship = aiShips.find((s) => s.name === config.name);
+      const isSunk = ship ? ship.hits.every((h) => h) : false;
+      return { name: config.name, size: config.size, sunk: isSunk };
+    });
+    const playerRemaining = playerShipStatus.filter((s) => !s.sunk).length;
+    const aiRemaining = aiShipStatus.filter((s) => !s.sunk).length;
+
+    return (
+      <div className="fleet-scoreboard">
+        <div className="fleet-scoreboard-side player-side">
+          <div className="fleet-scoreboard-header">
+            <span className="fleet-side-label">YOUR FLEET</span>
+            <span className="fleet-remaining">{playerRemaining}/5 Active</span>
+          </div>
+          <div className="fleet-ship-icons">
+            {playerShipStatus.map((s) => (
+              <div key={s.name} className={`fleet-ship-icon ${s.sunk ? 'sunk' : 'active'}`} title={s.name}>
+                <div className="fleet-ship-bar" style={{ width: `${s.size * 14}px` }} />
+                <span className="fleet-ship-name">{s.name}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="fleet-scoreboard-divider">
+          <div className="fleet-score-circle player-circle">{playerSunk}</div>
+          <span className="fleet-vs">vs</span>
+          <div className="fleet-score-circle ai-circle">{aiSunk}</div>
+        </div>
+        <div className="fleet-scoreboard-side ai-side">
+          <div className="fleet-scoreboard-header">
+            <span className="fleet-side-label">ENEMY FLEET</span>
+            <span className="fleet-remaining">{aiRemaining}/5 Active</span>
+          </div>
+          <div className="fleet-ship-icons">
+            {aiShipStatus.map((s) => (
+              <div key={s.name} className={`fleet-ship-icon ${s.sunk ? 'sunk' : 'active'}`} title={s.name}>
+                <div className="fleet-ship-bar" style={{ width: `${s.size * 14}px` }} />
+                <span className="fleet-ship-name">{s.name}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className="game-container">
@@ -859,20 +1085,8 @@ function App() {
 
       <div className={getStatusClass()}>{getStatusText()}</div>
 
-      {/* Score display during play */}
-      {phase !== 'placement' && (
-        <div className="score-display">
-          <div className="score-item player-score">
-            <span className="score-label">Player</span>
-            <span className="score-value">{playerSunk}</span>
-          </div>
-          <div className="score-divider">vs</div>
-          <div className="score-item ai-score">
-            <span className="score-label">AI</span>
-            <span className="score-value">{aiSunk}</span>
-          </div>
-        </div>
-      )}
+      {/* Fleet scoreboard during play */}
+      {phase !== 'placement' && renderScoreboard()}
 
       {phase === 'placement' && currentShipConfig && (
         <div className="placement-controls">
@@ -932,19 +1146,6 @@ function App() {
             </button>
           </div>
         </div>
-      )}
-
-      {phase !== 'placement' && (
-        <>
-          <div style={{ marginBottom: '0.25rem', color: '#667', fontSize: '0.8rem' }}>
-            YOUR FLEET
-          </div>
-          {renderShipLegend(playerShips)}
-          <div style={{ marginBottom: '0.25rem', color: '#667', fontSize: '0.8rem' }}>
-            ENEMY FLEET
-          </div>
-          {renderShipLegend(aiShips)}
-        </>
       )}
 
       <div className="boards-container" ref={boardsContainerRef}>
@@ -1013,6 +1214,20 @@ function App() {
       {banner.active && (
         <div className={`battle-banner banner-${banner.type}`}>
           <div className="banner-text">{banner.text}</div>
+        </div>
+      )}
+
+      {/* Sunk ship popup with unique image per ship type */}
+      {sunkShipPopup.active && (
+        <div className="sunk-ship-overlay" key={`${sunkShipPopup.shipName}-${sunkShipPopup.side}`}>
+          <div className="sunk-ship-content">
+            {renderSunkShipSVG(sunkShipPopup.shipName)}
+            <div className={`sunk-ship-banner ${sunkShipPopup.side === 'player' ? 'enemy-sunk' : 'player-sunk'}`}>
+              {sunkShipPopup.side === 'player'
+                ? `YOUR ${sunkShipPopup.shipName.toUpperCase()} HAS BEEN SUNK!`
+                : `ENEMY ${sunkShipPopup.shipName.toUpperCase()} DESTROYED!`}
+            </div>
+          </div>
         </div>
       )}
 
