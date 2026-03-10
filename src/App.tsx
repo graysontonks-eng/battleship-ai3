@@ -1317,7 +1317,7 @@ function App() {
             (isPlayerBoard && tacticalGrid.targetBoard === 'player') ||
             (!isPlayerBoard && tacticalGrid.targetBoard === 'enemy')
           ) && (
-            <div className="tactical-grid-overlay">
+            <div className="tactical-grid-overlay" style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none', zIndex: 10 }}>
               <div className="tactical-scanline" />
               <div className="tactical-crosshair-h" />
               <div className="tactical-crosshair-v" />
