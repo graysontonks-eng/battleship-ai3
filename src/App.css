@@ -957,11 +957,7 @@
   overflow: visible;
 }
 
-/* Vertical ship SVG rotation */
-.ship-overlay-svg.ship-overlay-vertical {
-  transform: rotate(90deg);
-  transform-origin: top left;
-}
+/* Vertical ships handled via SVG internal transform - no CSS rotation needed */
 
 /* Water splash effect for misses */
 .splash-overlay {
