@@ -90,8 +90,8 @@
 .grid {
   display: grid;
   gap: 1px;
-  background: #1a1a2e;
-  border: 2px solid #333366;
+  background: #2a2a4e;
+  border: 2px solid #4455aa;
   border-radius: 4px;
   padding: 1px;
 }
@@ -107,12 +107,12 @@
   justify-content: center;
   font-size: 0.75rem;
   font-weight: 700;
-  color: #667;
-  background: #0d0d1a;
+  color: #8899bb;
+  background: #141428;
 }
 
 .grid-corner {
-  background: #0d0d1a;
+  background: #141428;
 }
 
 /* Cells */
@@ -120,14 +120,14 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #16213e;
+  background: #0e1a33;
   border-radius: 2px;
   transition: background-color 0.15s, transform 0.1s;
   position: relative;
 }
 
 .cell.water {
-  background: #16213e;
+  background: #0e1a33;
 }
 
 .cell.clickable {
