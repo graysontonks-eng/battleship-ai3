@@ -74,8 +74,9 @@ function getAdjacentCells(pos: Position): Position[] {
 
 export function getAIShot(aiState: AIState): Position {
   // Target mode: follow up on hits
-  while (aiState.hitQueue.length > 0) {
-    const target = aiState.hitQueue.shift()!;
+  const queue = [...aiState.hitQueue];
+  while (queue.length > 0) {
+    const target = queue.shift()!;
     if (!aiState.shotsTaken[target.row][target.col]) {
       return target;
     }

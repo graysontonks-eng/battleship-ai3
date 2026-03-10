@@ -128,7 +128,7 @@ export function processShot(
 }
 
 export function allShipsSunk(ships: Ship[]): boolean {
-  return ships.every((ship) => ship.hits.every((h) => h));
+  return ships.length > 0 && ships.every((ship) => ship.hits.every((h) => h));
 }
 
 export function getCoordinateLabel(pos: Position): string {
