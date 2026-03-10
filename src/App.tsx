@@ -92,11 +92,6 @@ interface FogPulseState {
   isEnemyBoard: boolean;
 }
 
-interface TacticalGridState {
-  active: boolean;
-  targetBoard: 'player' | 'enemy';
-}
-
 function App() {
   // Game phase
   const [phase, setPhase] = useState<GamePhase>('splash');
@@ -219,10 +214,6 @@ function App() {
   // Fog of war pulse state (target cell glow before shot)
   const [fogPulse, setFogPulse] = useState<FogPulseState>({ active: false, row: 0, col: 0, isEnemyBoard: false });
   const fogPulseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  // Tactical grid overlay state (targeting computer effect)
-  const [tacticalGrid, setTacticalGrid] = useState<TacticalGridState>({ active: false, targetBoard: 'enemy' });
-  const tacticalGridTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Board grid refs for calculating projectile coordinates
   const playerGridRef = useRef<HTMLDivElement | null>(null);
@@ -396,15 +387,6 @@ function App() {
     }, 400);
   }, []);
 
-  // Show tactical grid overlay on the targeted board
-  const showTacticalGrid = useCallback((targetBoard: 'player' | 'enemy') => {
-    if (tacticalGridTimerRef.current) clearTimeout(tacticalGridTimerRef.current);
-    setTacticalGrid({ active: true, targetBoard });
-    tacticalGridTimerRef.current = setTimeout(() => {
-      setTacticalGrid({ active: false, targetBoard: 'enemy' });
-    }, 500);
-  }, []);
-
   // Get damage level for a ship (number of hits taken)
   const getShipDamageLevel = useCallback((ships: Ship[], row: number, col: number): string => {
     for (const ship of ships) {
@@ -556,8 +538,6 @@ function App() {
     }
     // Show fog of war pulse on the target cell
     showFogPulse(target.row, target.col, isEnemyBoard);
-    // Show tactical grid overlay on the targeted board
-    showTacticalGrid(isEnemyBoard ? 'enemy' : 'player');
     // Show target lock reticle on the target cell
     showTargetLock(target.row, target.col, isEnemyBoard);
 
@@ -597,7 +577,7 @@ function App() {
         }
       }, flightDuration);
     }, lockDelay);
-  }, [applyShot, getCellPosition, showTargetLock, showRadarSweep, showFogPulse, showTacticalGrid]);
+  }, [applyShot, getCellPosition, showTargetLock, showRadarSweep, showFogPulse]);
 
   // Simulation loop via useEffect
   const simTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -628,10 +608,6 @@ function App() {
       if (fogPulseTimerRef.current) {
         clearTimeout(fogPulseTimerRef.current);
         fogPulseTimerRef.current = null;
-      }
-      if (tacticalGridTimerRef.current) {
-        clearTimeout(tacticalGridTimerRef.current);
-        tacticalGridTimerRef.current = null;
       }
     };
   }, [sim.running, sim.speed, sim.turn, phase, doSimStep, playerBoard, aiBoard, playerShips, aiShips, aiState]);
@@ -732,7 +708,6 @@ function App() {
 
       // Show fog of war pulse, tactical grid, and target lock reticle on the clicked cell
       showFogPulse(row, col, true);
-      showTacticalGrid('enemy');
       showTargetLock(row, col, true);
 
       if (result.result === 'sunk') {
@@ -775,7 +750,7 @@ function App() {
         doAITurn(aiState, playerBoard, playerShips);
       }, 600);
     },
-    [phase, turn, aiBoard, aiShips, aiState, playerBoard, playerShips, addMessage, doAITurn, sim.running, showBanner, showExplosion, showSplash, showSunkShipImage, showTargetLock, showFogPulse, showTacticalGrid, triggerScreenShake, showCaptainAnnouncement]
+    [phase, turn, aiBoard, aiShips, aiState, playerBoard, playerShips, addMessage, doAITurn, sim.running, showBanner, showExplosion, showSplash, showSunkShipImage, showTargetLock, showFogPulse, triggerScreenShake, showCaptainAnnouncement]
   );
 
   // Auto-place ships and start auto-sim
@@ -805,7 +780,6 @@ function App() {
     setScreenShake(false);
     setCaptainAnnouncement({ active: false, text: '', type: 'confirm' });
     setFogPulse({ active: false, row: 0, col: 0, isEnemyBoard: false });
-    setTacticalGrid({ active: false, targetBoard: 'enemy' });
     setGameOverScreen(null);
 
     setSim({
@@ -862,7 +836,6 @@ function App() {
     setScreenShake(false);
     setCaptainAnnouncement({ active: false, text: '', type: 'confirm' });
     setFogPulse({ active: false, row: 0, col: 0, isEnemyBoard: false });
-    setTacticalGrid({ active: false, targetBoard: 'enemy' });
     setGameOverScreen(null);
     setMessages([{ text: 'Place your ships to begin!', type: 'info' }]);
     setSim({
@@ -1312,22 +1285,6 @@ function App() {
           ))}
           {/* Ship SVG overlays (player board only, during gameplay) */}
           {isPlayerBoard && phase !== 'placement' && renderShipOverlays(playerShips)}
-          {/* Tactical grid overlay (targeting computer effect) */}
-          {tacticalGrid.active && (
-            (isPlayerBoard && tacticalGrid.targetBoard === 'player') ||
-            (!isPlayerBoard && tacticalGrid.targetBoard === 'enemy')
-          ) && (
-            <div className="tactical-grid-overlay" style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none', zIndex: 10 }}>
-              <div className="tactical-scanline" />
-              <div className="tactical-crosshair-h" />
-              <div className="tactical-crosshair-v" />
-              <div className="tactical-corner tactical-corner-tl" />
-              <div className="tactical-corner tactical-corner-tr" />
-              <div className="tactical-corner tactical-corner-bl" />
-              <div className="tactical-corner tactical-corner-br" />
-              <div className="tactical-label">TARGETING SYSTEM ACTIVE</div>
-            </div>
-          )}
         </div>
       </div>
       <div className="board-frame-bottom" />
