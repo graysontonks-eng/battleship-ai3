@@ -43,6 +43,24 @@ interface ProjectileState {
   active: boolean;
   direction: 'left-to-right' | 'right-to-left'; // player fires right, AI fires left
   result: 'hit' | 'miss' | 'sunk' | null;
+  targetRow: number;
+  targetCol: number;
+  startX: number; // px from left of boards-container
+  startY: number; // px from top of boards-container
+  endX: number;
+  endY: number;
+}
+
+interface BannerState {
+  active: boolean;
+  text: string;
+  type: 'hit' | 'sunk';
+}
+
+interface ExplosionState {
+  active: boolean;
+  x: number;
+  y: number;
 }
 
 function App() {
@@ -114,9 +132,28 @@ function App() {
     active: false,
     direction: 'left-to-right',
     result: null,
+    targetRow: 0,
+    targetCol: 0,
+    startX: 0,
+    startY: 0,
+    endX: 0,
+    endY: 0,
   });
   const projectileTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingShotRef = useRef<(() => void) | null>(null);
+
+  // Banner state for "DIRECT HIT!" and "Ship Destroyed!"
+  const [banner, setBanner] = useState<BannerState>({ active: false, text: '', type: 'hit' });
+  const bannerTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Explosion state (pre-computed pixel position)
+  const [explosion, setExplosion] = useState<ExplosionState>({ active: false, x: 0, y: 0 });
+  const explosionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Board grid refs for calculating projectile coordinates
+  const playerGridRef = useRef<HTMLDivElement | null>(null);
+  const enemyGridRef = useRef<HTMLDivElement | null>(null);
+  const boardsContainerRef = useRef<HTMLDivElement | null>(null);
 
   // Messages
   const [messages, setMessages] = useState<GameMessage[]>([
@@ -185,13 +222,58 @@ function App() {
     );
   }, []);
 
+  // Calculate pixel position of a cell relative to boards-container
+  const getCellPosition = useCallback((row: number, col: number, isEnemyBoard: boolean): { x: number; y: number } => {
+    const containerEl = boardsContainerRef.current;
+    const gridEl = isEnemyBoard ? enemyGridRef.current : playerGridRef.current;
+    if (!containerEl || !gridEl) return { x: 0, y: 0 };
+
+    const containerRect = containerEl.getBoundingClientRect();
+    const gridRect = gridEl.getBoundingClientRect();
+    const cellX = gridRect.left - containerRect.left + 28 + 1 + col * 37 + 18;
+    const cellY = gridRect.top - containerRect.top + 28 + 1 + row * 37 + 18;
+    return { x: cellX, y: cellY };
+  }, []);
+
+  // Show a banner ("DIRECT HIT!" or "Ship Destroyed!")
+  const showBanner = useCallback((text: string, type: 'hit' | 'sunk') => {
+    if (bannerTimerRef.current) clearTimeout(bannerTimerRef.current);
+    setBanner({ active: true, text, type });
+    bannerTimerRef.current = setTimeout(() => {
+      setBanner({ active: false, text: '', type: 'hit' });
+    }, 1000);
+  }, []);
+
+  // Show explosion at a cell (pre-compute position to avoid ref access in render)
+  const showExplosion = useCallback((row: number, col: number, isPlayerBoard: boolean) => {
+    if (explosionTimerRef.current) clearTimeout(explosionTimerRef.current);
+    const pos = getCellPosition(row, col, !isPlayerBoard);
+    setExplosion({ active: true, x: pos.x, y: pos.y });
+    explosionTimerRef.current = setTimeout(() => {
+      setExplosion({ active: false, x: 0, y: 0 });
+    }, 800);
+  }, [getCellPosition]);
+
+  // Show splash at a cell for misses (pre-compute position)
+  const [splash, setSplash] = useState<ExplosionState>({ active: false, x: 0, y: 0 });
+  const splashTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const showSplash = useCallback((row: number, col: number, isPlayerBoard: boolean) => {
+    if (splashTimerRef.current) clearTimeout(splashTimerRef.current);
+    const pos = getCellPosition(row, col, !isPlayerBoard);
+    setSplash({ active: true, x: pos.x, y: pos.y });
+    splashTimerRef.current = setTimeout(() => {
+      setSplash({ active: false, x: 0, y: 0 });
+    }, 600);
+  }, [getCellPosition]);
+
   // Apply the actual shot result (called after projectile animation completes)
-  const applyShot = useCallback((who: 'player' | 'ai') => {
+  // target is pre-computed in doSimStep so projectile knows where to fly
+  const applyShot = useCallback((who: 'player' | 'ai', target: Position) => {
     if (phaseRef.current !== 'playing') return;
     const currentSim = simRef.current;
 
     if (who === 'player') {
-      const target = getAIShot(currentSim.playerAI);
       const result = processShot(aiBoardRef.current, aiShipsRef.current, target);
       setAiBoard(result.board);
       setAiShips(result.ships);
@@ -207,10 +289,15 @@ function App() {
       const coordLabel = getCoordinateLabel(target);
       if (result.result === 'sunk') {
         addMessage(`Player fired at ${coordLabel}: Hit and sunk ${result.shipName}!`, 'sunk');
+        showBanner('SHIP DESTROYED!', 'sunk');
+        showExplosion(target.row, target.col, false);
       } else if (result.result === 'hit') {
         addMessage(`Player fired at ${coordLabel}: Hit on ${result.shipName}!`, 'hit');
+        showBanner('DIRECT HIT!', 'hit');
+        showExplosion(target.row, target.col, false);
       } else {
         addMessage(`Player fired at ${coordLabel}: Miss.`, 'miss');
+        showSplash(target.row, target.col, false);
       }
 
       // Show impact result on projectile briefly
@@ -220,14 +307,13 @@ function App() {
         setPhase('gameOver');
         addMessage('Player sunk all enemy ships! Player wins!', 'win');
         setSim((prev) => ({ ...prev, running: false, playerAI: newPlayerAI }));
-        setProjectile({ active: false, direction: 'left-to-right', result: null });
+        setProjectile((prev) => ({ ...prev, active: false, result: null }));
         return;
       }
 
       setTurn('ai');
       setSim((prev) => ({ ...prev, turn: 'ai', playerAI: newPlayerAI }));
     } else {
-      const target = getAIShot(aiStateRef.current);
       const result = processShot(playerBoardRef.current, playerShipsRef.current, target);
       setPlayerBoard(result.board);
       setPlayerShips(result.ships);
@@ -244,10 +330,15 @@ function App() {
       const coordLabel = getCoordinateLabel(target);
       if (result.result === 'sunk') {
         addMessage(`AI fired at ${coordLabel}: Hit and sunk your ${result.shipName}!`, 'sunk');
+        showBanner('SHIP DESTROYED!', 'sunk');
+        showExplosion(target.row, target.col, true);
       } else if (result.result === 'hit') {
         addMessage(`AI fired at ${coordLabel}: Hit on your ${result.shipName}!`, 'hit');
+        showBanner('DIRECT HIT!', 'hit');
+        showExplosion(target.row, target.col, true);
       } else {
         addMessage(`AI fired at ${coordLabel}: Miss.`, 'miss');
+        showSplash(target.row, target.col, true);
       }
 
       setProjectile((prev) => ({ ...prev, result: result.result }));
@@ -256,14 +347,14 @@ function App() {
         setPhase('gameOver');
         addMessage('AI sunk all your ships! AI wins!', 'win');
         setSim((prev) => ({ ...prev, running: false }));
-        setProjectile({ active: false, direction: 'right-to-left', result: null });
+        setProjectile((prev) => ({ ...prev, active: false, result: null }));
         return;
       }
 
       setTurn('player');
       setSim((prev) => ({ ...prev, turn: 'player' }));
     }
-  }, [addMessage]);
+  }, [addMessage, showBanner, showExplosion, showSplash]);
 
   // Execute one simulation step: launch projectile, then apply shot on impact
   const doSimStep = useCallback(() => {
@@ -272,19 +363,38 @@ function App() {
     const who = currentSim.turn;
     const direction = who === 'player' ? 'left-to-right' as const : 'right-to-left' as const;
 
+    // Pre-compute the target so projectile knows where to fly
+    const target = who === 'player'
+      ? getAIShot(currentSim.playerAI)
+      : getAIShot(aiStateRef.current);
+
+    // Calculate start and end positions
+    const isEnemyBoard = who === 'player'; // player fires at enemy board
+    const startPos = getCellPosition(5, 5, !isEnemyBoard); // fire from center of own board
+    const endPos = getCellPosition(target.row, target.col, isEnemyBoard);
+
     // Calculate projectile flight duration based on sim speed
-    // Flight takes ~40% of the interval between shots, min 80ms, max 400ms
     const flightDuration = Math.max(80, Math.min(400, currentSim.speed * 0.4));
 
-    // Launch projectile
-    setProjectile({ active: true, direction, result: null });
+    // Launch projectile toward target cell
+    setProjectile({
+      active: true,
+      direction,
+      result: null,
+      targetRow: target.row,
+      targetCol: target.col,
+      startX: startPos.x,
+      startY: startPos.y,
+      endX: endPos.x,
+      endY: endPos.y,
+    });
 
-    // Store the pending shot application
+    // Store the pending shot application with pre-computed target
     pendingShotRef.current = () => {
-      applyShot(who);
+      applyShot(who, target);
       // Clear projectile after a brief impact flash
       projectileTimerRef.current = setTimeout(() => {
-        setProjectile({ active: false, direction: 'left-to-right', result: null });
+        setProjectile((prev) => ({ ...prev, active: false, result: null }));
       }, Math.max(50, flightDuration * 0.3));
     };
 
@@ -295,7 +405,7 @@ function App() {
         pendingShotRef.current = null;
       }
     }, flightDuration);
-  }, [applyShot]);
+  }, [applyShot, getCellPosition]);
 
   // Simulation loop via useEffect
   const simTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -346,13 +456,18 @@ function App() {
           `AI fired at ${coordLabel}: Hit and sunk your ${result.shipName}!`,
           'sunk'
         );
+        showBanner('SHIP DESTROYED!', 'sunk');
+        showExplosion(target.row, target.col, true);
       } else if (result.result === 'hit') {
         addMessage(
           `AI fired at ${coordLabel}: Hit on your ${result.shipName}!`,
           'hit'
         );
+        showBanner('DIRECT HIT!', 'hit');
+        showExplosion(target.row, target.col, true);
       } else {
         addMessage(`AI fired at ${coordLabel}: Miss.`, 'miss');
+        showSplash(target.row, target.col, true);
       }
 
       if (allShipsSunk(result.ships)) {
@@ -364,7 +479,7 @@ function App() {
       setTurn('player');
       isProcessingShot.current = false;
     },
-    [addMessage]
+    [addMessage, showBanner, showExplosion, showSplash]
   );
 
   // Player attack (manual mode)
@@ -393,13 +508,18 @@ function App() {
           `You fired at ${coordLabel}: Hit and sunk ${result.shipName}!`,
           'sunk'
         );
+        showBanner('SHIP DESTROYED!', 'sunk');
+        showExplosion(row, col, false);
       } else if (result.result === 'hit') {
         addMessage(
           `You fired at ${coordLabel}: Hit on ${result.shipName}!`,
           'hit'
         );
+        showBanner('DIRECT HIT!', 'hit');
+        showExplosion(row, col, false);
       } else {
         addMessage(`You fired at ${coordLabel}: Miss.`, 'miss');
+        showSplash(row, col, false);
       }
 
       if (allShipsSunk(result.ships)) {
@@ -416,7 +536,7 @@ function App() {
         doAITurn(aiState, playerBoard, playerShips);
       }, 600);
     },
-    [phase, turn, aiBoard, aiShips, aiState, playerBoard, playerShips, addMessage, doAITurn, sim.running]
+    [phase, turn, aiBoard, aiShips, aiState, playerBoard, playerShips, addMessage, doAITurn, sim.running, showBanner, showExplosion, showSplash]
   );
 
   // Auto-place ships and start auto-sim
@@ -435,7 +555,10 @@ function App() {
     setLastPlayerShot(null);
     setLastAIShot(null);
     setMessages([{ text: 'Auto Battle started! Watch the action unfold.', type: 'info' }]);
-    setProjectile({ active: false, direction: 'left-to-right', result: null });
+    setProjectile({ active: false, direction: 'left-to-right', result: null, targetRow: 0, targetCol: 0, startX: 0, startY: 0, endX: 0, endY: 0 });
+    setBanner({ active: false, text: '', type: 'hit' });
+    setExplosion({ active: false, x: 0, y: 0 });
+    setSplash({ active: false, x: 0, y: 0 });
 
     setSim({
       running: true,
@@ -470,7 +593,10 @@ function App() {
     setHoverPos(null);
     setLastPlayerShot(null);
     setLastAIShot(null);
-    setProjectile({ active: false, direction: 'left-to-right', result: null });
+    setProjectile({ active: false, direction: 'left-to-right', result: null, targetRow: 0, targetCol: 0, startX: 0, startY: 0, endX: 0, endY: 0 });
+    setBanner({ active: false, text: '', type: 'hit' });
+    setExplosion({ active: false, x: 0, y: 0 });
+    setSplash({ active: false, x: 0, y: 0 });
     setMessages([{ text: 'Place your ships to begin!', type: 'info' }]);
     setSim({
       running: false,
@@ -577,12 +703,15 @@ function App() {
     }
 
     if (isPlayerBoard) {
-      // Player's own board during gameplay - show ships and hits
+      // Player's own board during gameplay - show ships and hits with silhouettes
       if (cellState === 'sunk') className += ' sunk';
       else if (cellState === 'hit') className += ' hit';
       else if (cellState === 'miss') className += ' miss';
-      else if (cellState === 'ship') className += ' ship';
-      else className += ' water';
+      else if (cellState === 'ship') {
+        className += ' ship';
+        const shapeClass = getShipShapeClass(row, col, playerShips);
+        if (shapeClass) className += ` ${shapeClass}`;
+      } else className += ' water';
 
       if (isLastShot) className += ' last-shot';
 
@@ -619,11 +748,28 @@ function App() {
     );
   };
 
+  // Get ship shape CSS class for a cell position on player board
+  const getShipShapeClass = (row: number, col: number, ships: Ship[]): string => {
+    for (const ship of ships) {
+      const posIndex = ship.positions.findIndex((p) => p.row === row && p.col === col);
+      if (posIndex === -1) continue;
+      const isHorizontal = ship.positions.length > 1 && ship.positions[0].row === ship.positions[1].row;
+      const orient = isHorizontal ? 'h' : 'v';
+      if (posIndex === 0) return `ship-piece ship-bow-${orient} ship-${ship.name.toLowerCase()}`;
+      if (posIndex === ship.positions.length - 1) return `ship-piece ship-stern-${orient} ship-${ship.name.toLowerCase()}`;
+      return `ship-piece ship-mid-${orient} ship-${ship.name.toLowerCase()}`;
+    }
+    return '';
+  };
+
   // Render a complete board grid
   const renderBoard = (board: Board, isPlayerBoard: boolean, label: string) => (
     <div className="board-section">
       <div className="board-label">{label}</div>
-      <div className="grid grid-10">
+      <div
+        className="grid grid-10"
+        ref={isPlayerBoard ? playerGridRef : enemyGridRef}
+      >
         {/* Corner */}
         <div className="grid-corner grid-header" />
         {/* Column headers */}
@@ -773,23 +919,74 @@ function App() {
         </>
       )}
 
-      <div className="boards-container">
+      <div className="boards-container" ref={boardsContainerRef}>
         {renderBoard(playerBoard, true, phase === 'placement' ? 'Place Your Ships' : 'Your Ocean')}
         {phase !== 'placement' && (
           <>
-            {/* Projectile animation overlay */}
+            {/* Targeted projectile animation overlay */}
             {projectile.active && (
-              <div className={`projectile-container ${projectile.direction}`}>
-                <div className={`projectile ${projectile.result ? `impact-${projectile.result}` : ''}`}>
+              <div className="projectile-container">
+                <div
+                  className={`projectile-targeted ${projectile.result ? `impact-${projectile.result}` : ''}`}
+                  style={{
+                    '--start-x': `${projectile.startX}px`,
+                    '--start-y': `${projectile.startY}px`,
+                    '--end-x': `${projectile.endX}px`,
+                    '--end-y': `${projectile.endY}px`,
+                  } as React.CSSProperties}
+                >
                   <div className="projectile-body" />
-                  <div className="projectile-trail" />
+                  <div className={`projectile-trail ${projectile.direction}`} />
                 </div>
               </div>
             )}
+
+            {/* Explosion overlay */}
+            {explosion.active && (
+              <div
+                className="explosion-overlay"
+                style={{
+                  left: `${explosion.x}px`,
+                  top: `${explosion.y}px`,
+                }}
+              >
+                <div className="explosion-ring explosion-ring-1" />
+                <div className="explosion-ring explosion-ring-2" />
+                <div className="explosion-ring explosion-ring-3" />
+                <div className="explosion-core" />
+              </div>
+            )}
+
+            {/* Water splash overlay for misses */}
+            {splash.active && (
+              <div
+                className="splash-overlay"
+                style={{
+                  left: `${splash.x}px`,
+                  top: `${splash.y}px`,
+                }}
+              >
+                <div className="splash-ripple splash-ripple-1" />
+                <div className="splash-ripple splash-ripple-2" />
+                <div className="splash-ripple splash-ripple-3" />
+                <div className="splash-drop splash-drop-1" />
+                <div className="splash-drop splash-drop-2" />
+                <div className="splash-drop splash-drop-3" />
+                <div className="splash-drop splash-drop-4" />
+              </div>
+            )}
+
             {renderBoard(aiBoard, false, sim.running ? 'Enemy Waters' : 'Enemy Waters (Click to Fire)')}
           </>
         )}
       </div>
+
+      {/* DIRECT HIT / SHIP DESTROYED banner */}
+      {banner.active && (
+        <div className={`battle-banner banner-${banner.type}`}>
+          <div className="banner-text">{banner.text}</div>
+        </div>
+      )}
 
       {phase === 'gameOver' && (
         <div className="game-actions">

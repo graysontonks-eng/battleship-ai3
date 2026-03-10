@@ -474,7 +474,7 @@
   color: #bbddff;
 }
 
-/* Projectile animation */
+/* Projectile animation - targeted */
 .projectile-container {
   position: absolute;
   top: 0;
@@ -483,23 +483,31 @@
   height: 100%;
   pointer-events: none;
   z-index: 10;
-  overflow: hidden;
+  overflow: visible;
 }
 
-.projectile-container .projectile {
+.projectile-targeted {
   position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
+  animation: fly-targeted 0.35s ease-in forwards;
 }
 
-/* Player fires left-to-right */
-.projectile-container.left-to-right .projectile {
-  animation: fly-left-to-right 0.35s ease-in forwards;
-}
-
-/* AI fires right-to-left */
-.projectile-container.right-to-left .projectile {
-  animation: fly-right-to-left 0.35s ease-in forwards;
+@keyframes fly-targeted {
+  0% {
+    left: var(--start-x);
+    top: var(--start-y);
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.5);
+  }
+  15% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  100% {
+    left: var(--end-x);
+    top: var(--end-y);
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
 }
 
 .projectile-body {
@@ -524,21 +532,21 @@
   z-index: 1;
 }
 
-.left-to-right .projectile-trail {
+.projectile-trail.left-to-right {
   right: 12px;
   width: 60px;
   background: linear-gradient(to left, #ffaa22, #ff6622 40%, transparent);
 }
 
-.right-to-left .projectile-trail {
+.projectile-trail.right-to-left {
   left: 12px;
   width: 60px;
   background: linear-gradient(to right, #ffaa22, #ff6622 40%, transparent);
 }
 
 /* Impact states */
-.projectile.impact-hit .projectile-body,
-.projectile.impact-sunk .projectile-body {
+.projectile-targeted.impact-hit .projectile-body,
+.projectile-targeted.impact-sunk .projectile-body {
   background: radial-gradient(circle, #ffffff 20%, #ff4444 50%, transparent 100%);
   box-shadow:
     0 0 16px 8px #ff4444,
@@ -547,7 +555,7 @@
   animation: impact-burst 0.3s ease-out;
 }
 
-.projectile.impact-miss .projectile-body {
+.projectile-targeted.impact-miss .projectile-body {
   background: radial-gradient(circle, #ffffff 20%, #4488ff 50%, transparent 100%);
   box-shadow:
     0 0 12px 6px #4488ff,
@@ -555,63 +563,319 @@
   animation: impact-splash 0.3s ease-out;
 }
 
-.projectile.impact-hit .projectile-trail,
-.projectile.impact-sunk .projectile-trail,
-.projectile.impact-miss .projectile-trail {
+.projectile-targeted.impact-hit .projectile-trail,
+.projectile-targeted.impact-sunk .projectile-trail,
+.projectile-targeted.impact-miss .projectile-trail {
   opacity: 0;
 }
 
-@keyframes fly-left-to-right {
-  0% {
-    left: 15%;
-    opacity: 0;
-  }
-  15% {
-    opacity: 1;
-  }
-  100% {
-    left: 80%;
-    opacity: 1;
-  }
-}
-
-@keyframes fly-right-to-left {
-  0% {
-    right: 15%;
-    opacity: 0;
-  }
-  15% {
-    opacity: 1;
-  }
-  100% {
-    right: 80%;
-    opacity: 1;
-  }
-}
-
 @keyframes impact-burst {
-  0% {
-    transform: scale(1);
-  }
-  50% {
-    transform: scale(2.5);
-  }
-  100% {
-    transform: scale(0.5);
-    opacity: 0.3;
-  }
+  0% { transform: scale(1); }
+  50% { transform: scale(2.5); }
+  100% { transform: scale(0.5); opacity: 0.3; }
 }
 
 @keyframes impact-splash {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.8); }
+  100% { transform: scale(0.5); opacity: 0.3; }
+}
+
+/* Explosion effect at target cell */
+.explosion-overlay {
+  position: absolute;
+  pointer-events: none;
+  z-index: 15;
+  transform: translate(-50%, -50%);
+}
+
+.explosion-core {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #ffffff 0%, #ffcc00 30%, #ff4400 60%, transparent 100%);
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  animation: explosion-core-anim 0.6s ease-out forwards;
+}
+
+.explosion-ring {
+  position: absolute;
+  border-radius: 50%;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.explosion-ring-1 {
+  width: 10px;
+  height: 10px;
+  border: 3px solid #ff4400;
+  animation: explosion-ring-expand 0.6s ease-out forwards;
+}
+
+.explosion-ring-2 {
+  width: 10px;
+  height: 10px;
+  border: 2px solid #ffaa00;
+  animation: explosion-ring-expand 0.6s 0.1s ease-out forwards;
+}
+
+.explosion-ring-3 {
+  width: 10px;
+  height: 10px;
+  border: 2px solid #ff6600;
+  animation: explosion-ring-expand 0.6s 0.2s ease-out forwards;
+}
+
+@keyframes explosion-core-anim {
+  0% { transform: translate(-50%, -50%) scale(0.5); opacity: 1; }
+  30% { transform: translate(-50%, -50%) scale(2); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(0.2); opacity: 0; }
+}
+
+@keyframes explosion-ring-expand {
+  0% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(6); opacity: 0; }
+}
+
+/* DIRECT HIT / SHIP DESTROYED banner */
+.battle-banner {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  pointer-events: none;
+  animation: banner-fade 1s ease-out forwards;
+}
+
+.banner-hit {
+  background: linear-gradient(180deg, rgba(255, 68, 0, 0.15) 0%, transparent 40%, transparent 60%, rgba(255, 68, 0, 0.15) 100%);
+}
+
+.banner-sunk {
+  background: linear-gradient(180deg, rgba(255, 0, 0, 0.2) 0%, transparent 40%, transparent 60%, rgba(255, 0, 0, 0.2) 100%);
+}
+
+.banner-text {
+  font-size: 4rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  text-shadow:
+    0 0 20px rgba(255, 100, 0, 0.8),
+    0 0 40px rgba(255, 60, 0, 0.5),
+    0 0 60px rgba(255, 30, 0, 0.3),
+    2px 2px 4px rgba(0, 0, 0, 0.8);
+  animation: banner-text-anim 1s ease-out forwards;
+}
+
+.banner-hit .banner-text {
+  color: #ff8844;
+}
+
+.banner-sunk .banner-text {
+  color: #ff3333;
+}
+
+@keyframes banner-fade {
+  0% { opacity: 0; }
+  15% { opacity: 1; }
+  70% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+@keyframes banner-text-anim {
+  0% { transform: scale(0.3); opacity: 0; }
+  20% { transform: scale(1.2); opacity: 1; }
+  35% { transform: scale(1); }
+  70% { transform: scale(1); opacity: 1; }
+  100% { transform: scale(1.5); opacity: 0; }
+}
+
+/* Ship silhouette pieces (physical board game style) */
+.cell.ship.ship-piece {
+  background: #2a5a8f;
+  position: relative;
+  overflow: visible;
+}
+
+/* Bow (front) - horizontal: pointed right */
+.cell.ship.ship-bow-h {
+  border-radius: 4px 50% 50% 4px;
+  background: linear-gradient(135deg, #3a6aaf 0%, #2a5a8f 60%);
+}
+
+/* Bow (front) - vertical: pointed down */
+.cell.ship.ship-bow-v {
+  border-radius: 4px 4px 50% 50%;
+  background: linear-gradient(180deg, #3a6aaf 0%, #2a5a8f 60%);
+}
+
+/* Stern (back) - horizontal: flat left */
+.cell.ship.ship-stern-h {
+  border-radius: 50% 4px 4px 50%;
+  background: linear-gradient(225deg, #3a6aaf 0%, #223a6f 60%);
+}
+
+/* Stern (back) - vertical: flat top */
+.cell.ship.ship-stern-v {
+  border-radius: 50% 50% 4px 4px;
+  background: linear-gradient(0deg, #3a6aaf 0%, #223a6f 60%);
+}
+
+/* Mid sections */
+.cell.ship.ship-mid-h {
+  border-radius: 2px;
+  background: linear-gradient(180deg, #3a6aaf 0%, #2a5070 50%, #3a6aaf 100%);
+}
+
+.cell.ship.ship-mid-v {
+  border-radius: 2px;
+  background: linear-gradient(90deg, #3a6aaf 0%, #2a5070 50%, #3a6aaf 100%);
+}
+
+/* Ship-specific color accents */
+.cell.ship.ship-carrier {
+  box-shadow: inset 0 0 8px rgba(100, 180, 255, 0.3);
+}
+
+.cell.ship.ship-battleship {
+  box-shadow: inset 0 0 8px rgba(150, 150, 200, 0.3);
+}
+
+.cell.ship.ship-cruiser {
+  box-shadow: inset 0 0 8px rgba(100, 200, 150, 0.3);
+}
+
+.cell.ship.ship-submarine {
+  box-shadow: inset 0 0 8px rgba(200, 200, 100, 0.3);
+}
+
+.cell.ship.ship-destroyer {
+  box-shadow: inset 0 0 8px rgba(200, 130, 100, 0.3);
+}
+
+/* Ship deck detail line */
+.cell.ship.ship-mid-h::before,
+.cell.ship.ship-bow-h::before,
+.cell.ship.ship-stern-h::before {
+  content: '';
+  position: absolute;
+  top: 45%;
+  left: 10%;
+  width: 80%;
+  height: 2px;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 1px;
+}
+
+.cell.ship.ship-mid-v::before,
+.cell.ship.ship-bow-v::before,
+.cell.ship.ship-stern-v::before {
+  content: '';
+  position: absolute;
+  left: 45%;
+  top: 10%;
+  height: 80%;
+  width: 2px;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 1px;
+}
+
+/* Water splash effect for misses */
+.splash-overlay {
+  position: absolute;
+  pointer-events: none;
+  z-index: 15;
+  transform: translate(-50%, -50%);
+}
+
+.splash-ripple {
+  position: absolute;
+  border-radius: 50%;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  border: 2px solid rgba(100, 180, 255, 0.6);
+}
+
+.splash-ripple-1 {
+  width: 8px;
+  height: 8px;
+  animation: splash-ripple-expand 0.6s ease-out forwards;
+}
+
+.splash-ripple-2 {
+  width: 8px;
+  height: 8px;
+  animation: splash-ripple-expand 0.6s 0.1s ease-out forwards;
+  opacity: 0;
+}
+
+.splash-ripple-3 {
+  width: 8px;
+  height: 8px;
+  animation: splash-ripple-expand 0.6s 0.2s ease-out forwards;
+  opacity: 0;
+}
+
+.splash-drop {
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: rgba(100, 180, 255, 0.8);
+}
+
+.splash-drop-1 {
+  animation: splash-drop-fly 0.5s ease-out forwards;
+  --drop-x: -12px;
+  --drop-y: -16px;
+}
+
+.splash-drop-2 {
+  animation: splash-drop-fly 0.5s 0.05s ease-out forwards;
+  --drop-x: 14px;
+  --drop-y: -12px;
+}
+
+.splash-drop-3 {
+  animation: splash-drop-fly 0.5s 0.08s ease-out forwards;
+  --drop-x: -8px;
+  --drop-y: -18px;
+}
+
+.splash-drop-4 {
+  animation: splash-drop-fly 0.5s 0.1s ease-out forwards;
+  --drop-x: 10px;
+  --drop-y: -14px;
+}
+
+@keyframes splash-ripple-expand {
+  0% { transform: translate(-50%, -50%) scale(1); opacity: 0.8; }
+  100% { transform: translate(-50%, -50%) scale(5); opacity: 0; }
+}
+
+@keyframes splash-drop-fly {
   0% {
-    transform: scale(1);
+    transform: translate(0, 0) scale(1);
+    opacity: 1;
   }
-  50% {
-    transform: scale(1.8);
+  60% {
+    transform: translate(var(--drop-x), var(--drop-y)) scale(0.8);
+    opacity: 0.8;
   }
   100% {
-    transform: scale(0.5);
-    opacity: 0.3;
+    transform: translate(var(--drop-x), calc(var(--drop-y) + 20px)) scale(0.3);
+    opacity: 0;
   }
 }
 
