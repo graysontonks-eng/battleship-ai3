@@ -21,7 +21,7 @@ export interface ShipConfig {
 
 export type Board = CellState[][];
 
-export type GamePhase = 'placement' | 'playing' | 'gameOver';
+export type GamePhase = 'splash' | 'placement' | 'playing' | 'gameOver';
 
 export type Turn = 'player' | 'ai';
 

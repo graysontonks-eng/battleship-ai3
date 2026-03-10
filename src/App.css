@@ -1361,6 +1361,62 @@
   100% { opacity: 0; transform: translateX(-50%) translateY(-5px); }
 }
 
+/* Splash / title screen */
+.splash-screen {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2rem;
+  padding: 2rem 0;
+  animation: splash-fade-in 1s ease-out forwards;
+}
+
+.splash-battleship {
+  width: 100%;
+  max-width: 700px;
+  border-radius: 12px;
+  box-shadow:
+    0 4px 30px rgba(0, 40, 80, 0.5),
+    0 0 60px rgba(30, 100, 180, 0.15);
+  border: 1px solid rgba(100, 180, 255, 0.15);
+}
+
+.splash-buttons {
+  display: flex;
+  gap: 1.5rem;
+}
+
+.splash-btn {
+  font-size: 1.2rem;
+  padding: 0.8rem 2.5rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  font-weight: 700;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.splash-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 20px rgba(100, 180, 255, 0.3);
+}
+
+.splash-hint {
+  color: rgba(150, 200, 255, 0.5);
+  font-size: 0.9rem;
+  letter-spacing: 0.05em;
+  margin: 0;
+}
+
+.status-bar.splash-status {
+  background: rgba(20, 60, 100, 0.3);
+  border-color: rgba(100, 180, 255, 0.2);
+}
+
+@keyframes splash-fade-in {
+  0% { opacity: 0; transform: translateY(20px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
 /* Game Over / Victory screen overlay */
 .game-over-overlay {
   position: fixed;

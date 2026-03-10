@@ -87,7 +87,7 @@ interface CaptainAnnouncementState {
 
 function App() {
   // Game phase
-  const [phase, setPhase] = useState<GamePhase>('placement');
+  const [phase, setPhase] = useState<GamePhase>('splash');
   const [turn, setTurn] = useState<SimTurn>('player');
 
   // Player state
@@ -753,9 +753,15 @@ function App() {
     setSim((prev) => ({ ...prev, speed }));
   }, []);
 
+  // Start manual placement from splash
+  const startPlacement = useCallback(() => {
+    setPhase('placement');
+    setMessages([{ text: 'Place your ships to begin!', type: 'info' }]);
+  }, []);
+
   // Reset game
   const resetGame = useCallback(() => {
-    setPhase('placement');
+    setPhase('splash');
     setTurn('player');
     setPlayerBoard(createEmptyBoard());
     setPlayerShips([]);
@@ -816,6 +822,7 @@ function App() {
 
   // Get status text
   const getStatusText = (): string => {
+    if (phase === 'splash') return 'Prepare for Battle';
     if (phase === 'placement') {
       if (currentShipConfig) {
         return `Place your ${currentShipConfig.name} (${currentShipConfig.size} cells)`;
@@ -836,6 +843,7 @@ function App() {
   };
 
   const getStatusClass = (): string => {
+    if (phase === 'splash') return 'status-bar splash-status';
     if (phase === 'gameOver') return 'status-bar game-over';
     if (phase === 'placement') return 'status-bar';
     if (sim.running) return turn === 'player' ? 'status-bar auto-player' : 'status-bar auto-ai';
@@ -1214,10 +1222,118 @@ function App() {
       <h1 className="game-title">Battleship</h1>
       <p className="game-subtitle">Auto Battle Simulator</p>
 
-      <div className={getStatusClass()}>{getStatusText()}</div>
+      {phase !== 'splash' && (
+        <div className={getStatusClass()}>{getStatusText()}</div>
+      )}
+
+      {/* Splash / title screen */}
+      {phase === 'splash' && (
+        <div className="splash-screen">
+          <svg className="splash-battleship" viewBox="0 0 800 400" xmlns="http://www.w3.org/2000/svg">
+            {/* Ocean / water */}
+            <defs>
+              <linearGradient id="oceanGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" stopColor="#0a2a4a" />
+                <stop offset="100%" stopColor="#051525" />
+              </linearGradient>
+              <linearGradient id="skyGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" stopColor="#0c1e3a" />
+                <stop offset="60%" stopColor="#142844" />
+                <stop offset="100%" stopColor="#1a3555" />
+              </linearGradient>
+              <linearGradient id="hullGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" stopColor="#556" />
+                <stop offset="100%" stopColor="#334" />
+              </linearGradient>
+              <linearGradient id="superGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" stopColor="#667" />
+                <stop offset="100%" stopColor="#445" />
+              </linearGradient>
+            </defs>
+            {/* Sky */}
+            <rect x="0" y="0" width="800" height="220" fill="url(#skyGrad)" />
+            {/* Stars */}
+            <circle cx="120" cy="40" r="1.5" fill="#fff" opacity="0.7" />
+            <circle cx="280" cy="65" r="1" fill="#fff" opacity="0.5" />
+            <circle cx="450" cy="30" r="1.5" fill="#fff" opacity="0.8" />
+            <circle cx="580" cy="55" r="1" fill="#fff" opacity="0.4" />
+            <circle cx="700" cy="25" r="1.2" fill="#fff" opacity="0.6" />
+            <circle cx="350" cy="80" r="1" fill="#fff" opacity="0.5" />
+            <circle cx="650" cy="45" r="1.5" fill="#fff" opacity="0.6" />
+            <circle cx="180" cy="75" r="1" fill="#fff" opacity="0.4" />
+            {/* Moon */}
+            <circle cx="680" cy="60" r="25" fill="#e8e4d0" opacity="0.15" />
+            <circle cx="688" cy="55" r="22" fill="url(#skyGrad)" />
+            {/* Ocean */}
+            <rect x="0" y="220" width="800" height="180" fill="url(#oceanGrad)" />
+            {/* Water waves */}
+            <path d="M0,230 Q50,225 100,230 T200,230 T300,228 T400,232 T500,228 T600,230 T700,228 T800,230" fill="none" stroke="rgba(100,180,255,0.15)" strokeWidth="1.5" />
+            <path d="M0,245 Q60,240 120,245 T240,243 T360,247 T480,243 T600,245 T720,243 T800,245" fill="none" stroke="rgba(100,180,255,0.1)" strokeWidth="1" />
+            {/* Battleship hull */}
+            <path d="M140,225 L170,210 L630,210 L680,225 L660,250 L160,250 Z" fill="url(#hullGrad)" stroke="#778" strokeWidth="1.5" />
+            {/* Waterline */}
+            <path d="M155,250 L665,250" stroke="rgba(200,30,30,0.6)" strokeWidth="3" />
+            {/* Hull details */}
+            <line x1="200" y1="215" x2="200" y2="248" stroke="#445" strokeWidth="0.5" />
+            <line x1="300" y1="213" x2="300" y2="248" stroke="#445" strokeWidth="0.5" />
+            <line x1="400" y1="212" x2="400" y2="248" stroke="#445" strokeWidth="0.5" />
+            <line x1="500" y1="213" x2="500" y2="248" stroke="#445" strokeWidth="0.5" />
+            <line x1="600" y1="215" x2="600" y2="248" stroke="#445" strokeWidth="0.5" />
+            {/* Deck */}
+            <rect x="185" y="198" width="430" height="14" rx="2" fill="url(#superGrad)" stroke="#778" strokeWidth="1" />
+            {/* Bridge superstructure */}
+            <rect x="320" y="158" width="120" height="42" rx="3" fill="url(#superGrad)" stroke="#778" strokeWidth="1" />
+            <rect x="340" y="138" width="80" height="22" rx="2" fill="#556" stroke="#778" strokeWidth="1" />
+            <rect x="355" y="125" width="50" height="15" rx="2" fill="#445" stroke="#667" strokeWidth="1" />
+            {/* Bridge windows */}
+            <rect x="330" y="165" width="10" height="6" rx="1" fill="#2a4a6a" stroke="#5af" strokeWidth="0.5" opacity="0.8" />
+            <rect x="345" y="165" width="10" height="6" rx="1" fill="#2a4a6a" stroke="#5af" strokeWidth="0.5" opacity="0.8" />
+            <rect x="360" y="165" width="10" height="6" rx="1" fill="#2a4a6a" stroke="#5af" strokeWidth="0.5" opacity="0.8" />
+            <rect x="375" y="165" width="10" height="6" rx="1" fill="#2a4a6a" stroke="#5af" strokeWidth="0.5" opacity="0.8" />
+            <rect x="390" y="165" width="10" height="6" rx="1" fill="#2a4a6a" stroke="#5af" strokeWidth="0.5" opacity="0.8" />
+            <rect x="405" y="165" width="10" height="6" rx="1" fill="#2a4a6a" stroke="#5af" strokeWidth="0.5" opacity="0.8" />
+            <rect x="420" y="165" width="10" height="6" rx="1" fill="#2a4a6a" stroke="#5af" strokeWidth="0.5" opacity="0.8" />
+            {/* Radar mast */}
+            <line x1="380" y1="125" x2="380" y2="95" stroke="#667" strokeWidth="2" />
+            <ellipse cx="380" cy="100" rx="18" ry="3" fill="none" stroke="#889" strokeWidth="1.5" />
+            {/* Antenna */}
+            <line x1="380" y1="95" x2="380" y2="80" stroke="#556" strokeWidth="1.5" />
+            <line x1="372" y1="85" x2="388" y2="85" stroke="#556" strokeWidth="1" />
+            {/* Forward turrets */}
+            <rect x="220" y="191" width="40" height="10" rx="3" fill="#556" stroke="#778" strokeWidth="1" />
+            <line x1="235" y1="191" x2="210" y2="185" stroke="#667" strokeWidth="4" strokeLinecap="round" />
+            <rect x="270" y="191" width="35" height="10" rx="3" fill="#556" stroke="#778" strokeWidth="1" />
+            <line x1="283" y1="191" x2="260" y2="186" stroke="#667" strokeWidth="3.5" strokeLinecap="round" />
+            {/* Aft turret */}
+            <rect x="475" y="191" width="40" height="10" rx="3" fill="#556" stroke="#778" strokeWidth="1" />
+            <line x1="500" y1="191" x2="525" y2="185" stroke="#667" strokeWidth="4" strokeLinecap="round" />
+            {/* Smokestacks */}
+            <rect x="450" y="165" width="16" height="35" rx="2" fill="#445" stroke="#667" strokeWidth="1" />
+            <ellipse cx="458" cy="165" rx="8" ry="3" fill="#334" />
+            {/* Small deck details */}
+            <rect x="535" y="195" width="60" height="5" rx="1" fill="#4a4a5a" />
+            <rect x="195" y="195" width="15" height="5" rx="1" fill="#4a4a5a" />
+            {/* Ship wake in water */}
+            <path d="M150,260 Q200,255 300,260 T500,258 T670,262" fill="none" stroke="rgba(150,200,255,0.08)" strokeWidth="2" />
+            <path d="M155,275 Q250,270 400,275 T660,272" fill="none" stroke="rgba(150,200,255,0.05)" strokeWidth="1.5" />
+            {/* Bow wave */}
+            <path d="M140,235 Q130,240 120,260 Q110,280 105,300" fill="none" stroke="rgba(150,220,255,0.12)" strokeWidth="2" />
+            <path d="M140,235 Q128,242 115,265" fill="none" stroke="rgba(200,230,255,0.08)" strokeWidth="1.5" />
+          </svg>
+          <div className="splash-buttons">
+            <button className="btn btn-primary splash-btn" onClick={startPlacement}>
+              Manual Battle
+            </button>
+            <button className="btn btn-auto splash-btn" onClick={startAutoSim}>
+              Auto Battle
+            </button>
+          </div>
+          <p className="splash-hint">Choose your mode and prepare for battle</p>
+        </div>
+      )}
 
       {/* Fleet scoreboard during play */}
-      {phase !== 'placement' && renderScoreboard()}
+      {phase !== 'placement' && phase !== 'splash' && renderScoreboard()}
 
       {phase === 'placement' && currentShipConfig && (
         <div className="placement-controls">
@@ -1286,6 +1402,7 @@ function App() {
         </div>
       )}
 
+      {phase !== 'splash' && (
       <div className="boards-container" ref={boardsContainerRef}>
         {renderBoard(playerBoard, true, phase === 'placement' ? 'Place Your Ships' : 'Your Ocean')}
         {/* Radar sweep overlay on player board during AI turn */}
@@ -1366,6 +1483,7 @@ function App() {
           </>
         )}
       </div>
+      )}
 
       {/* DIRECT HIT / SHIP DESTROYED banner */}
       {banner.active && (
@@ -1487,16 +1605,18 @@ function App() {
         </div>
       )}
 
-      <div className="message-log">
-        <div className="message-log-title">Battle Log</div>
-        <div className="message-list">
-          {messages.map((msg, i) => (
-            <div key={i} className={`message-item ${msg.type}`}>
-              {msg.text}
-            </div>
-          ))}
+      {phase !== 'splash' && (
+        <div className="message-log">
+          <div className="message-log-title">Battle Log</div>
+          <div className="message-list">
+            {messages.map((msg, i) => (
+              <div key={i} className={`message-item ${msg.type}`}>
+                {msg.text}
+              </div>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
