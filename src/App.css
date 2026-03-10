@@ -1176,6 +1176,191 @@
   letter-spacing: 0.1em;
 }
 
+/* Target lock reticle */
+.target-lock-overlay {
+  position: absolute;
+  pointer-events: none;
+  z-index: 12;
+  transform: translate(-50%, -50%);
+}
+
+.target-lock-reticle {
+  width: 40px;
+  height: 40px;
+  border: 2px solid #ff3333;
+  border-radius: 50%;
+  position: relative;
+  animation: target-lock-spin 0.3s linear forwards;
+  box-shadow: 0 0 8px rgba(255, 50, 50, 0.6), inset 0 0 8px rgba(255, 50, 50, 0.3);
+}
+
+.target-lock-reticle::before,
+.target-lock-reticle::after {
+  content: '';
+  position: absolute;
+  background: #ff3333;
+}
+
+.target-lock-reticle::before {
+  width: 2px;
+  height: 100%;
+  left: 50%;
+  top: 0;
+  transform: translateX(-50%);
+}
+
+.target-lock-reticle::after {
+  width: 100%;
+  height: 2px;
+  top: 50%;
+  left: 0;
+  transform: translateY(-50%);
+}
+
+@keyframes target-lock-spin {
+  0% { transform: scale(2) rotate(0deg); opacity: 0; }
+  50% { transform: scale(1.1) rotate(90deg); opacity: 1; }
+  100% { transform: scale(1) rotate(180deg); opacity: 0.8; }
+}
+
+/* Radar sweep - positioned over player board inside boards-container */
+.radar-sweep-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 50%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 11;
+  overflow: hidden;
+  border-radius: 4px;
+}
+
+.radar-sweep-line {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+  background: linear-gradient(180deg, transparent 0%, rgba(0, 255, 100, 0.8) 50%, transparent 100%);
+  box-shadow: 0 0 15px rgba(0, 255, 100, 0.5), 0 0 30px rgba(0, 255, 100, 0.2);
+  animation: radar-sweep 0.6s linear forwards;
+}
+
+@keyframes radar-sweep {
+  0% { left: 0%; opacity: 0.8; }
+  100% { left: 100%; opacity: 0; }
+}
+
+/* Screen shake */
+.screen-shake {
+  animation: screen-shake-anim 0.5s ease-in-out;
+}
+
+@keyframes screen-shake-anim {
+  0% { transform: translate(0, 0); }
+  10% { transform: translate(-4px, -2px); }
+  20% { transform: translate(4px, 2px); }
+  30% { transform: translate(-3px, 3px); }
+  40% { transform: translate(3px, -3px); }
+  50% { transform: translate(-2px, 2px); }
+  60% { transform: translate(2px, -1px); }
+  70% { transform: translate(-1px, 1px); }
+  80% { transform: translate(1px, -1px); }
+  90% { transform: translate(-1px, 0); }
+  100% { transform: translate(0, 0); }
+}
+
+/* Burning wreck markers for sunk ship cells */
+.cell.wreck {
+  position: relative;
+  overflow: visible;
+}
+
+.cell.wreck::before {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 8px;
+  height: 12px;
+  background: radial-gradient(ellipse at bottom, rgba(255, 120, 20, 0.9) 0%, rgba(255, 60, 0, 0.6) 40%, transparent 70%);
+  border-radius: 50% 50% 20% 20%;
+  animation: wreck-flame 0.8s ease-in-out infinite alternate;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.cell.wreck::after {
+  content: '';
+  position: absolute;
+  top: -8px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 16px;
+  height: 10px;
+  background: radial-gradient(ellipse at center, rgba(100, 100, 100, 0.5) 0%, transparent 70%);
+  border-radius: 50%;
+  animation: wreck-smoke 1.5s ease-out infinite;
+  z-index: 3;
+  pointer-events: none;
+}
+
+@keyframes wreck-flame {
+  0% { height: 10px; opacity: 0.7; }
+  100% { height: 14px; opacity: 1; }
+}
+
+@keyframes wreck-smoke {
+  0% { transform: translateX(-50%) translateY(0) scale(1); opacity: 0.4; }
+  100% { transform: translateX(-50%) translateY(-10px) scale(1.5); opacity: 0; }
+}
+
+/* Captain announcements */
+.captain-announcement {
+  position: fixed;
+  top: 60px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 120;
+  pointer-events: none;
+  font-size: 1.1rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  padding: 0.4rem 1.2rem;
+  border-radius: 6px;
+  background: rgba(10, 15, 30, 0.85);
+  border: 1px solid rgba(100, 170, 255, 0.3);
+  animation: captain-fade 1.2s ease-in-out forwards;
+  white-space: nowrap;
+}
+
+.captain-confirm {
+  color: #4f4;
+  border-color: rgba(60, 200, 60, 0.4);
+  text-shadow: 0 0 8px rgba(60, 200, 60, 0.5);
+}
+
+.captain-destroyed {
+  color: #f84;
+  border-color: rgba(255, 140, 60, 0.4);
+  text-shadow: 0 0 8px rgba(255, 140, 60, 0.5);
+}
+
+.captain-miss {
+  color: #8af;
+  border-color: rgba(100, 160, 255, 0.4);
+  text-shadow: 0 0 8px rgba(100, 160, 255, 0.3);
+}
+
+@keyframes captain-fade {
+  0% { opacity: 0; transform: translateX(-50%) translateY(-10px); }
+  15% { opacity: 1; transform: translateX(-50%) translateY(0); }
+  70% { opacity: 1; transform: translateX(-50%) translateY(0); }
+  100% { opacity: 0; transform: translateX(-50%) translateY(-5px); }
+}
+
 /* Game actions */
 .game-actions {
   margin-top: 1rem;

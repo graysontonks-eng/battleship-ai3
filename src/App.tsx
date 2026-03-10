@@ -69,6 +69,22 @@ interface SunkShipPopupState {
   side: 'player' | 'ai';
 }
 
+interface TargetLockState {
+  active: boolean;
+  x: number;
+  y: number;
+}
+
+interface RadarSweepState {
+  active: boolean;
+}
+
+interface CaptainAnnouncementState {
+  active: boolean;
+  text: string;
+  type: 'confirm' | 'destroyed' | 'miss';
+}
+
 function App() {
   // Game phase
   const [phase, setPhase] = useState<GamePhase>('placement');
@@ -163,6 +179,22 @@ function App() {
   // Sunk ship popup state (unique image per ship type)
   const [sunkShipPopup, setSunkShipPopup] = useState<SunkShipPopupState>({ active: false, shipName: '', side: 'player' });
   const sunkShipTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Target lock reticle state
+  const [targetLock, setTargetLock] = useState<TargetLockState>({ active: false, x: 0, y: 0 });
+  const targetLockTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Radar sweep state (shown during AI turn)
+  const [radarSweep, setRadarSweep] = useState<RadarSweepState>({ active: false });
+  const radarSweepTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Screen shake state
+  const [screenShake, setScreenShake] = useState(false);
+  const screenShakeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Captain announcement state
+  const [captainAnnouncement, setCaptainAnnouncement] = useState<CaptainAnnouncementState>({ active: false, text: '', type: 'confirm' });
+  const captainTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Board grid refs for calculating projectile coordinates
   const playerGridRef = useRef<HTMLDivElement | null>(null);
@@ -290,6 +322,43 @@ function App() {
     }, 600);
   }, [getCellPosition]);
 
+  // Show target lock reticle at a cell
+  const showTargetLock = useCallback((row: number, col: number, isEnemyBoard: boolean) => {
+    if (targetLockTimerRef.current) clearTimeout(targetLockTimerRef.current);
+    const pos = getCellPosition(row, col, isEnemyBoard);
+    setTargetLock({ active: true, x: pos.x, y: pos.y });
+    targetLockTimerRef.current = setTimeout(() => {
+      setTargetLock({ active: false, x: 0, y: 0 });
+    }, 300);
+  }, [getCellPosition]);
+
+  // Show radar sweep over player board during AI turn
+  const showRadarSweep = useCallback(() => {
+    if (radarSweepTimerRef.current) clearTimeout(radarSweepTimerRef.current);
+    setRadarSweep({ active: true });
+    radarSweepTimerRef.current = setTimeout(() => {
+      setRadarSweep({ active: false });
+    }, 600);
+  }, []);
+
+  // Trigger screen shake
+  const triggerScreenShake = useCallback(() => {
+    if (screenShakeTimerRef.current) clearTimeout(screenShakeTimerRef.current);
+    setScreenShake(true);
+    screenShakeTimerRef.current = setTimeout(() => {
+      setScreenShake(false);
+    }, 500);
+  }, []);
+
+  // Show captain announcement
+  const showCaptainAnnouncement = useCallback((text: string, type: 'confirm' | 'destroyed' | 'miss') => {
+    if (captainTimerRef.current) clearTimeout(captainTimerRef.current);
+    setCaptainAnnouncement({ active: true, text, type });
+    captainTimerRef.current = setTimeout(() => {
+      setCaptainAnnouncement({ active: false, text: '', type: 'confirm' });
+    }, 1200);
+  }, []);
+
   // Apply the actual shot result (called after projectile animation completes)
   // target is pre-computed in doSimStep so projectile knows where to fly
   const applyShot = useCallback((who: 'player' | 'ai', target: Position) => {
@@ -314,14 +383,18 @@ function App() {
         addMessage(`Player fired at ${coordLabel}: Hit and sunk ${result.shipName}!`, 'sunk');
         showBanner('SHIP DESTROYED!', 'sunk');
         showExplosion(target.row, target.col, false);
+        triggerScreenShake();
+        showCaptainAnnouncement('Enemy ship destroyed!', 'destroyed');
         if (result.shipName) showSunkShipImage(result.shipName, 'ai');
       } else if (result.result === 'hit') {
         addMessage(`Player fired at ${coordLabel}: Hit on ${result.shipName}!`, 'hit');
         showBanner('DIRECT HIT!', 'hit');
         showExplosion(target.row, target.col, false);
+        showCaptainAnnouncement('Target confirmed!', 'confirm');
       } else {
         addMessage(`Player fired at ${coordLabel}: Miss.`, 'miss');
         showSplash(target.row, target.col, false);
+        showCaptainAnnouncement('Shot missed!', 'miss');
       }
 
       // Show impact result on projectile briefly
@@ -356,6 +429,8 @@ function App() {
         addMessage(`AI fired at ${coordLabel}: Hit and sunk your ${result.shipName}!`, 'sunk');
         showBanner('SHIP DESTROYED!', 'sunk');
         showExplosion(target.row, target.col, true);
+        triggerScreenShake();
+        showCaptainAnnouncement('Our ship is going down!', 'destroyed');
         if (result.shipName) showSunkShipImage(result.shipName, 'player');
 
         // Check if AI has sunk 4 out of 5 player ships — trigger Vader popup
@@ -371,9 +446,11 @@ function App() {
         addMessage(`AI fired at ${coordLabel}: Hit on your ${result.shipName}!`, 'hit');
         showBanner('DIRECT HIT!', 'hit');
         showExplosion(target.row, target.col, true);
+        showCaptainAnnouncement('We\'ve been hit!', 'confirm');
       } else {
         addMessage(`AI fired at ${coordLabel}: Miss.`, 'miss');
         showSplash(target.row, target.col, true);
+        showCaptainAnnouncement('They missed!', 'miss');
       }
 
       setProjectile((prev) => ({ ...prev, result: result.result }));
@@ -389,7 +466,7 @@ function App() {
       setTurn('player');
       setSim((prev) => ({ ...prev, turn: 'player' }));
     }
-  }, [addMessage, showBanner, showExplosion, showSplash, showSunkShipImage]);
+  }, [addMessage, showBanner, showExplosion, showSplash, showSunkShipImage, triggerScreenShake, showCaptainAnnouncement]);
 
   // Execute one simulation step: launch projectile, then apply shot on impact
   const doSimStep = useCallback(() => {
@@ -411,36 +488,46 @@ function App() {
     // Calculate projectile flight duration based on sim speed
     const flightDuration = Math.max(80, Math.min(400, currentSim.speed * 0.4));
 
-    // Launch projectile toward target cell
-    setProjectile({
-      active: true,
-      direction,
-      result: null,
-      targetRow: target.row,
-      targetCol: target.col,
-      startX: startPos.x,
-      startY: startPos.y,
-      endX: endPos.x,
-      endY: endPos.y,
-    });
+    // Show radar sweep for AI turn, target lock for player turn
+    if (who === 'ai') {
+      showRadarSweep();
+    }
+    // Show target lock reticle on the target cell
+    showTargetLock(target.row, target.col, isEnemyBoard);
 
-    // Store the pending shot application with pre-computed target
-    pendingShotRef.current = () => {
-      applyShot(who, target);
-      // Clear projectile after a brief impact flash
+    // Launch projectile toward target cell (after brief target lock delay)
+    const lockDelay = 150; // half of 300ms lock duration
+    setTimeout(() => {
+      setProjectile({
+        active: true,
+        direction,
+        result: null,
+        targetRow: target.row,
+        targetCol: target.col,
+        startX: startPos.x,
+        startY: startPos.y,
+        endX: endPos.x,
+        endY: endPos.y,
+      });
+
+      // Store the pending shot application with pre-computed target
+      pendingShotRef.current = () => {
+        applyShot(who, target);
+        // Clear projectile after a brief impact flash
+        projectileTimerRef.current = setTimeout(() => {
+          setProjectile((prev) => ({ ...prev, active: false, result: null }));
+        }, Math.max(50, flightDuration * 0.3));
+      };
+
+      // Apply shot after projectile reaches target
       projectileTimerRef.current = setTimeout(() => {
-        setProjectile((prev) => ({ ...prev, active: false, result: null }));
-      }, Math.max(50, flightDuration * 0.3));
-    };
-
-    // Apply shot after projectile reaches target
-    projectileTimerRef.current = setTimeout(() => {
-      if (pendingShotRef.current) {
-        pendingShotRef.current();
-        pendingShotRef.current = null;
-      }
-    }, flightDuration);
-  }, [applyShot, getCellPosition]);
+        if (pendingShotRef.current) {
+          pendingShotRef.current();
+          pendingShotRef.current = null;
+        }
+      }, flightDuration);
+    }, lockDelay);
+  }, [applyShot, getCellPosition, showTargetLock, showRadarSweep]);
 
   // Simulation loop via useEffect
   const simTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -486,6 +573,9 @@ function App() {
 
       const coordLabel = getCoordinateLabel(target);
 
+      // Show radar sweep before AI fires in manual mode
+      showRadarSweep();
+
       if (result.result === 'sunk') {
         addMessage(
           `AI fired at ${coordLabel}: Hit and sunk your ${result.shipName}!`,
@@ -493,6 +583,8 @@ function App() {
         );
         showBanner('SHIP DESTROYED!', 'sunk');
         showExplosion(target.row, target.col, true);
+        triggerScreenShake();
+        showCaptainAnnouncement('Our ship is going down!', 'destroyed');
         if (result.shipName) showSunkShipImage(result.shipName, 'player');
 
         // Check if AI has sunk 4 out of 5 player ships — trigger Vader popup
@@ -511,9 +603,11 @@ function App() {
         );
         showBanner('DIRECT HIT!', 'hit');
         showExplosion(target.row, target.col, true);
+        showCaptainAnnouncement('We\'ve been hit!', 'confirm');
       } else {
         addMessage(`AI fired at ${coordLabel}: Miss.`, 'miss');
         showSplash(target.row, target.col, true);
+        showCaptainAnnouncement('They missed!', 'miss');
       }
 
       if (allShipsSunk(result.ships)) {
@@ -525,7 +619,7 @@ function App() {
       setTurn('player');
       isProcessingShot.current = false;
     },
-    [addMessage, showBanner, showExplosion, showSplash, showSunkShipImage]
+    [addMessage, showBanner, showExplosion, showSplash, showSunkShipImage, showRadarSweep, triggerScreenShake, showCaptainAnnouncement]
   );
 
   // Player attack (manual mode)
@@ -549,6 +643,9 @@ function App() {
 
       const coordLabel = getCoordinateLabel({ row, col });
 
+      // Show target lock reticle on the clicked cell
+      showTargetLock(row, col, true);
+
       if (result.result === 'sunk') {
         addMessage(
           `You fired at ${coordLabel}: Hit and sunk ${result.shipName}!`,
@@ -556,6 +653,8 @@ function App() {
         );
         showBanner('SHIP DESTROYED!', 'sunk');
         showExplosion(row, col, false);
+        triggerScreenShake();
+        showCaptainAnnouncement('Enemy ship destroyed!', 'destroyed');
         if (result.shipName) showSunkShipImage(result.shipName, 'ai');
       } else if (result.result === 'hit') {
         addMessage(
@@ -564,9 +663,11 @@ function App() {
         );
         showBanner('DIRECT HIT!', 'hit');
         showExplosion(row, col, false);
+        showCaptainAnnouncement('Target confirmed!', 'confirm');
       } else {
         addMessage(`You fired at ${coordLabel}: Miss.`, 'miss');
         showSplash(row, col, false);
+        showCaptainAnnouncement('Shot missed!', 'miss');
       }
 
       if (allShipsSunk(result.ships)) {
@@ -583,7 +684,7 @@ function App() {
         doAITurn(aiState, playerBoard, playerShips);
       }, 600);
     },
-    [phase, turn, aiBoard, aiShips, aiState, playerBoard, playerShips, addMessage, doAITurn, sim.running, showBanner, showExplosion, showSplash, showSunkShipImage]
+    [phase, turn, aiBoard, aiShips, aiState, playerBoard, playerShips, addMessage, doAITurn, sim.running, showBanner, showExplosion, showSplash, showSunkShipImage, showTargetLock, triggerScreenShake, showCaptainAnnouncement]
   );
 
   // Auto-place ships and start auto-sim
@@ -608,6 +709,10 @@ function App() {
     setSplash({ active: false, x: 0, y: 0 });
     setVaderPopup(false);
     setSunkShipPopup({ active: false, shipName: '', side: 'player' });
+    setTargetLock({ active: false, x: 0, y: 0 });
+    setRadarSweep({ active: false });
+    setScreenShake(false);
+    setCaptainAnnouncement({ active: false, text: '', type: 'confirm' });
 
     setSim({
       running: true,
@@ -648,6 +753,10 @@ function App() {
     setSplash({ active: false, x: 0, y: 0 });
     setVaderPopup(false);
     setSunkShipPopup({ active: false, shipName: '', side: 'player' });
+    setTargetLock({ active: false, x: 0, y: 0 });
+    setRadarSweep({ active: false });
+    setScreenShake(false);
+    setCaptainAnnouncement({ active: false, text: '', type: 'confirm' });
     setMessages([{ text: 'Place your ships to begin!', type: 'info' }]);
     setSim({
       running: false,
@@ -755,7 +864,8 @@ function App() {
 
     if (isPlayerBoard) {
       // Player's own board during gameplay - show ships and hits with silhouettes
-      if (cellState === 'sunk') className += ' sunk';
+      // Sunk cells get wreck marker class for burning debris effect
+      if (cellState === 'sunk') className += ' sunk wreck';
       else if (cellState === 'hit') className += ' hit';
       else if (cellState === 'miss') className += ' miss';
       else if (cellState === 'ship') {
@@ -770,7 +880,7 @@ function App() {
     }
 
     // AI board - hide ships, show hits/misses
-    if (cellState === 'sunk') className += ' sunk';
+    if (cellState === 'sunk') className += ' sunk wreck';
     else if (cellState === 'hit') className += ' hit';
     else if (cellState === 'miss') className += ' miss';
     else {
@@ -1079,7 +1189,7 @@ function App() {
   };
 
   return (
-    <div className="game-container">
+    <div className={`game-container${screenShake ? ' screen-shake' : ''}`}>
       <h1 className="game-title">Battleship</h1>
       <p className="game-subtitle">Auto Battle Simulator</p>
 
@@ -1148,10 +1258,36 @@ function App() {
         </div>
       )}
 
+      {/* Captain announcement near top of screen */}
+      {captainAnnouncement.active && (
+        <div className={`captain-announcement captain-${captainAnnouncement.type}`} key={captainAnnouncement.text}>
+          {captainAnnouncement.text}
+        </div>
+      )}
+
       <div className="boards-container" ref={boardsContainerRef}>
         {renderBoard(playerBoard, true, phase === 'placement' ? 'Place Your Ships' : 'Your Ocean')}
+        {/* Radar sweep overlay on player board during AI turn */}
+        {radarSweep.active && (
+          <div className="radar-sweep-container">
+            <div className="radar-sweep-line" />
+          </div>
+        )}
         {phase !== 'placement' && (
           <>
+            {/* Target lock reticle overlay */}
+            {targetLock.active && (
+              <div
+                className="target-lock-overlay"
+                style={{
+                  left: `${targetLock.x}px`,
+                  top: `${targetLock.y}px`,
+                }}
+              >
+                <div className="target-lock-reticle" />
+              </div>
+            )}
+
             {/* Targeted projectile animation overlay */}
             {projectile.active && (
               <div className="projectile-container">
