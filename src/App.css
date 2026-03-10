@@ -854,9 +854,9 @@
   100% { transform: scale(1.5); opacity: 0; }
 }
 
-/* Ship silhouette pieces (physical board game style) */
+/* Ship silhouette pieces - now semi-transparent to show SVG overlay underneath */
 .cell.ship.ship-piece {
-  background: #2a5a8f;
+  background: rgba(30, 60, 100, 0.25);
   position: relative;
   overflow: visible;
 }
@@ -864,60 +864,60 @@
 /* Bow (front) - horizontal: pointed right */
 .cell.ship.ship-bow-h {
   border-radius: 4px 50% 50% 4px;
-  background: linear-gradient(135deg, #3a6aaf 0%, #2a5a8f 60%);
+  background: rgba(40, 70, 110, 0.2);
 }
 
 /* Bow (front) - vertical: pointed down */
 .cell.ship.ship-bow-v {
   border-radius: 4px 4px 50% 50%;
-  background: linear-gradient(180deg, #3a6aaf 0%, #2a5a8f 60%);
+  background: rgba(40, 70, 110, 0.2);
 }
 
 /* Stern (back) - horizontal: flat left */
 .cell.ship.ship-stern-h {
   border-radius: 50% 4px 4px 50%;
-  background: linear-gradient(225deg, #3a6aaf 0%, #223a6f 60%);
+  background: rgba(30, 50, 90, 0.2);
 }
 
 /* Stern (back) - vertical: flat top */
 .cell.ship.ship-stern-v {
   border-radius: 50% 50% 4px 4px;
-  background: linear-gradient(0deg, #3a6aaf 0%, #223a6f 60%);
+  background: rgba(30, 50, 90, 0.2);
 }
 
 /* Mid sections */
 .cell.ship.ship-mid-h {
   border-radius: 2px;
-  background: linear-gradient(180deg, #3a6aaf 0%, #2a5070 50%, #3a6aaf 100%);
+  background: rgba(35, 60, 100, 0.2);
 }
 
 .cell.ship.ship-mid-v {
   border-radius: 2px;
-  background: linear-gradient(90deg, #3a6aaf 0%, #2a5070 50%, #3a6aaf 100%);
+  background: rgba(35, 60, 100, 0.2);
 }
 
-/* Ship-specific color accents */
+/* Ship-specific color accents - subtle glow under SVG */
 .cell.ship.ship-carrier {
-  box-shadow: inset 0 0 8px rgba(100, 180, 255, 0.3);
+  box-shadow: inset 0 0 6px rgba(100, 180, 255, 0.15);
 }
 
 .cell.ship.ship-battleship {
-  box-shadow: inset 0 0 8px rgba(150, 150, 200, 0.3);
+  box-shadow: inset 0 0 6px rgba(150, 150, 200, 0.15);
 }
 
 .cell.ship.ship-cruiser {
-  box-shadow: inset 0 0 8px rgba(100, 200, 150, 0.3);
+  box-shadow: inset 0 0 6px rgba(100, 200, 150, 0.15);
 }
 
 .cell.ship.ship-submarine {
-  box-shadow: inset 0 0 8px rgba(200, 200, 100, 0.3);
+  box-shadow: inset 0 0 6px rgba(200, 200, 100, 0.15);
 }
 
 .cell.ship.ship-destroyer {
-  box-shadow: inset 0 0 8px rgba(200, 130, 100, 0.3);
+  box-shadow: inset 0 0 6px rgba(200, 130, 100, 0.15);
 }
 
-/* Ship deck detail line */
+/* Ship deck detail line - hidden when SVG overlay is active */
 .cell.ship.ship-mid-h::before,
 .cell.ship.ship-bow-h::before,
 .cell.ship.ship-stern-h::before {
@@ -927,7 +927,7 @@
   left: 10%;
   width: 80%;
   height: 2px;
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.08);
   border-radius: 1px;
 }
 
@@ -940,8 +940,27 @@
   top: 10%;
   height: 80%;
   width: 2px;
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.08);
   border-radius: 1px;
+}
+
+/* SVG ship overlay container */
+.ship-svg-overlay {
+  position: absolute;
+  pointer-events: none;
+  z-index: 2;
+  filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.4));
+}
+
+.ship-overlay-svg {
+  display: block;
+  overflow: visible;
+}
+
+/* Vertical ship SVG rotation */
+.ship-overlay-svg.ship-overlay-vertical {
+  transform: rotate(90deg);
+  transform-origin: top left;
 }
 
 /* Water splash effect for misses */

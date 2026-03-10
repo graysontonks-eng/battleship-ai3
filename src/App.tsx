@@ -966,6 +966,204 @@ function App() {
     return '';
   };
 
+  // Render top-down SVG ship silhouettes for each ship type
+  const renderShipSVG = (shipName: string, size: number, isHorizontal: boolean) => {
+    // All SVGs use a horizontal viewBox; vertical ships are rotated via CSS
+    const w = size * 37;
+    const h = 36;
+
+    switch (shipName) {
+      case 'Carrier':
+        return (
+          <svg viewBox={`0 0 ${w} ${h}`} xmlns="http://www.w3.org/2000/svg" className={`ship-overlay-svg ${isHorizontal ? '' : 'ship-overlay-vertical'}`} style={{ width: isHorizontal ? w : h, height: isHorizontal ? h : w }}>
+            <defs>
+              <linearGradient id="carrierHull" x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" stopColor="#5a7a9f" />
+                <stop offset="50%" stopColor="#3a5a7f" />
+                <stop offset="100%" stopColor="#2a4a6f" />
+              </linearGradient>
+            </defs>
+            {/* Hull - large flat-top shape */}
+            <path d={`M 8 6 L ${w-15} 3 Q ${w-3} 8 ${w-3} ${h/2} Q ${w-3} ${h-8} ${w-15} ${h-3} L 8 ${h-6} Q 2 ${h/2} 8 6 Z`} fill="url(#carrierHull)" stroke="#6a9abf" strokeWidth="0.8" />
+            {/* Flight deck (lighter rectangle) */}
+            <rect x="12" y="8" width={w-28} height={h-16} rx="2" fill="#4a6a8f" opacity="0.7" />
+            {/* Runway stripe */}
+            <line x1="20" y1={h/2} x2={w-20} y2={h/2} stroke="#8ab0d0" strokeWidth="1" strokeDasharray="8 4" opacity="0.5" />
+            {/* Runway center line */}
+            <line x1="30" y1={h/2} x2={w-25} y2={h/2} stroke="#fff" strokeWidth="0.5" opacity="0.3" />
+            {/* Island/bridge (offset to starboard) */}
+            <rect x={w*0.6} y="8" width="18" height="10" rx="2" fill="#5a7a9f" stroke="#7aaacc" strokeWidth="0.5" />
+            <rect x={w*0.6+2} y="6" width="6" height="4" rx="1" fill="#6a8aaf" />
+            {/* Aircraft on deck */}
+            <polygon points={`${w*0.2},${h/2-4} ${w*0.2+8},${h/2-4} ${w*0.2+10},${h/2-2} ${w*0.2+8},${h/2} ${w*0.2},${h/2}`} fill="#5a8abf" opacity="0.6" />
+            <polygon points={`${w*0.35},${h/2+2} ${w*0.35+8},${h/2+2} ${w*0.35+10},${h/2+4} ${w*0.35+8},${h/2+6} ${w*0.35},${h/2+6}`} fill="#5a8abf" opacity="0.5" />
+            {/* Deck edge markings */}
+            <line x1="15" y1="8" x2="15" y2={h-8} stroke="#8ab0d0" strokeWidth="0.5" opacity="0.3" />
+            <line x1={w-18} y1="8" x2={w-18} y2={h-8} stroke="#8ab0d0" strokeWidth="0.5" opacity="0.3" />
+          </svg>
+        );
+      case 'Battleship':
+        return (
+          <svg viewBox={`0 0 ${w} ${h}`} xmlns="http://www.w3.org/2000/svg" className={`ship-overlay-svg ${isHorizontal ? '' : 'ship-overlay-vertical'}`} style={{ width: isHorizontal ? w : h, height: isHorizontal ? h : w }}>
+            <defs>
+              <linearGradient id="bbHull" x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" stopColor="#667a8f" />
+                <stop offset="50%" stopColor="#4a5a6f" />
+                <stop offset="100%" stopColor="#3a4a5f" />
+              </linearGradient>
+            </defs>
+            {/* Hull - sleek warship */}
+            <path d={`M 6 8 L ${w-12} 5 Q ${w-2} ${h/2} ${w-12} ${h-5} L 6 ${h-8} Q 1 ${h/2} 6 8 Z`} fill="url(#bbHull)" stroke="#7a9aaf" strokeWidth="0.8" />
+            {/* Deck superstructure center line */}
+            <rect x={w*0.25} y={h/2-4} width={w*0.5} height="8" rx="2" fill="#5a6a7f" opacity="0.6" />
+            {/* Bridge/command tower */}
+            <rect x={w*0.45} y={h/2-7} width="16" height="14" rx="2" fill="#6a7a8f" stroke="#8aaabb" strokeWidth="0.5" />
+            <rect x={w*0.45+3} y={h/2-9} width="10" height="4" rx="1" fill="#7a8a9f" />
+            {/* Forward turrets (2 guns) */}
+            <circle cx={w*0.18} cy={h/2} r="5" fill="#5a6a7f" stroke="#8aaabb" strokeWidth="0.5" />
+            <line x1={w*0.18} y1={h/2} x2={w*0.18+10} y2={h/2-1} stroke="#8a9aaf" strokeWidth="1.5" />
+            <line x1={w*0.18} y1={h/2} x2={w*0.18+10} y2={h/2+1} stroke="#8a9aaf" strokeWidth="1.5" />
+            <circle cx={w*0.32} cy={h/2} r="5" fill="#5a6a7f" stroke="#8aaabb" strokeWidth="0.5" />
+            <line x1={w*0.32} y1={h/2} x2={w*0.32+10} y2={h/2-1} stroke="#8a9aaf" strokeWidth="1.5" />
+            <line x1={w*0.32} y1={h/2} x2={w*0.32+10} y2={h/2+1} stroke="#8a9aaf" strokeWidth="1.5" />
+            {/* Aft turret */}
+            <circle cx={w*0.75} cy={h/2} r="5" fill="#5a6a7f" stroke="#8aaabb" strokeWidth="0.5" />
+            <line x1={w*0.75} y1={h/2} x2={w*0.75-10} y2={h/2-1} stroke="#8a9aaf" strokeWidth="1.5" />
+            <line x1={w*0.75} y1={h/2} x2={w*0.75-10} y2={h/2+1} stroke="#8a9aaf" strokeWidth="1.5" />
+            {/* Wake/waterline */}
+            <path d={`M 3 ${h/2} Q 6 ${h/2-6} 10 8`} fill="none" stroke="rgba(150,200,255,0.2)" strokeWidth="0.5" />
+            <path d={`M 3 ${h/2} Q 6 ${h/2+6} 10 ${h-8}`} fill="none" stroke="rgba(150,200,255,0.2)" strokeWidth="0.5" />
+          </svg>
+        );
+      case 'Cruiser':
+        return (
+          <svg viewBox={`0 0 ${w} ${h}`} xmlns="http://www.w3.org/2000/svg" className={`ship-overlay-svg ${isHorizontal ? '' : 'ship-overlay-vertical'}`} style={{ width: isHorizontal ? w : h, height: isHorizontal ? h : w }}>
+            <defs>
+              <linearGradient id="cruiserHull" x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" stopColor="#5a8a6f" />
+                <stop offset="50%" stopColor="#3a6a5f" />
+                <stop offset="100%" stopColor="#2a5a4f" />
+              </linearGradient>
+            </defs>
+            {/* Hull - sleek cruiser shape */}
+            <path d={`M 5 9 L ${w-10} 6 Q ${w-2} ${h/2} ${w-10} ${h-6} L 5 ${h-9} Q 1 ${h/2} 5 9 Z`} fill="url(#cruiserHull)" stroke="#6aaa8f" strokeWidth="0.8" />
+            {/* Deck */}
+            <rect x={w*0.15} y={h/2-3} width={w*0.7} height="6" rx="2" fill="#4a7a6f" opacity="0.5" />
+            {/* Bridge */}
+            <rect x={w*0.4} y={h/2-6} width="14" height="12" rx="2" fill="#5a8a7f" stroke="#7abba0" strokeWidth="0.5" />
+            <rect x={w*0.4+3} y={h/2-8} width="8" height="3" rx="1" fill="#6a9a8f" />
+            {/* Forward turret */}
+            <circle cx={w*0.2} cy={h/2} r="4" fill="#4a7a6f" stroke="#7abba0" strokeWidth="0.5" />
+            <line x1={w*0.2} y1={h/2} x2={w*0.2+9} y2={h/2} stroke="#7a9a8f" strokeWidth="1.5" />
+            {/* Aft turret */}
+            <circle cx={w*0.75} cy={h/2} r="4" fill="#4a7a6f" stroke="#7abba0" strokeWidth="0.5" />
+            <line x1={w*0.75} y1={h/2} x2={w*0.75-9} y2={h/2} stroke="#7a9a8f" strokeWidth="1.5" />
+            {/* Mast/antenna */}
+            <line x1={w*0.45} y1={h/2-8} x2={w*0.45} y2={h/2-14} stroke="#8abba0" strokeWidth="0.5" />
+            <line x1={w*0.45-3} y1={h/2-12} x2={w*0.45+3} y2={h/2-12} stroke="#8abba0" strokeWidth="0.3" />
+          </svg>
+        );
+      case 'Submarine':
+        return (
+          <svg viewBox={`0 0 ${w} ${h}`} xmlns="http://www.w3.org/2000/svg" className={`ship-overlay-svg ${isHorizontal ? '' : 'ship-overlay-vertical'}`} style={{ width: isHorizontal ? w : h, height: isHorizontal ? h : w }}>
+            <defs>
+              <linearGradient id="subHull" x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" stopColor="#8a8a5f" />
+                <stop offset="50%" stopColor="#6a6a4f" />
+                <stop offset="100%" stopColor="#5a5a3f" />
+              </linearGradient>
+            </defs>
+            {/* Hull - rounded submarine shape */}
+            <ellipse cx={w/2} cy={h/2} rx={w/2-4} ry={h/2-6} fill="url(#subHull)" stroke="#aaa87f" strokeWidth="0.8" />
+            {/* Conning tower / sail */}
+            <rect x={w*0.35} y={h/2-9} width="16" height="8" rx="3" fill="#7a7a5f" stroke="#bbb89f" strokeWidth="0.5" />
+            {/* Periscope */}
+            <line x1={w*0.42} y1={h/2-9} x2={w*0.42} y2={h/2-14} stroke="#aaa87f" strokeWidth="1" />
+            <circle cx={w*0.42} cy={h/2-14} r="1.5" fill="#ccc" />
+            {/* Bow planes (diving planes) */}
+            <line x1={w*0.12} y1={h/2-3} x2={w*0.12} y2={h/2+3} stroke="#9a9a6f" strokeWidth="1.5" />
+            {/* Stern planes */}
+            <line x1={w*0.88} y1={h/2-4} x2={w*0.88} y2={h/2+4} stroke="#9a9a6f" strokeWidth="1.5" />
+            {/* Propeller */}
+            <circle cx={w-6} cy={h/2} r="2" fill="none" stroke="#aaa87f" strokeWidth="0.5" />
+            <line x1={w-6} y1={h/2-3} x2={w-6} y2={h/2+3} stroke="#9a9a6f" strokeWidth="0.8" />
+            {/* Hull line */}
+            <line x1={w*0.15} y1={h/2} x2={w*0.85} y2={h/2} stroke="rgba(200,200,150,0.15)" strokeWidth="0.5" />
+            {/* Torpedo tubes (bow dots) */}
+            <circle cx={w*0.06} cy={h/2-2} r="1" fill="#bbb89f" opacity="0.5" />
+            <circle cx={w*0.06} cy={h/2+2} r="1" fill="#bbb89f" opacity="0.5" />
+          </svg>
+        );
+      case 'Destroyer':
+        return (
+          <svg viewBox={`0 0 ${w} ${h}`} xmlns="http://www.w3.org/2000/svg" className={`ship-overlay-svg ${isHorizontal ? '' : 'ship-overlay-vertical'}`} style={{ width: isHorizontal ? w : h, height: isHorizontal ? h : w }}>
+            <defs>
+              <linearGradient id="ddHull" x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" stopColor="#8f6a5a" />
+                <stop offset="50%" stopColor="#6f5a4a" />
+                <stop offset="100%" stopColor="#5f4a3a" />
+              </linearGradient>
+            </defs>
+            {/* Hull - small fast ship with sharp bow */}
+            <path d={`M 4 10 L ${w-8} 7 Q ${w-1} ${h/2} ${w-8} ${h-7} L 4 ${h-10} Q 1 ${h/2} 4 10 Z`} fill="url(#ddHull)" stroke="#af8a7a" strokeWidth="0.8" />
+            {/* Bridge */}
+            <rect x={w*0.35} y={h/2-5} width="12" height="10" rx="2" fill="#7f6a5a" stroke="#af9a8a" strokeWidth="0.5" />
+            <rect x={w*0.35+2} y={h/2-7} width="8" height="3" rx="1" fill="#8f7a6a" />
+            {/* Forward gun */}
+            <circle cx={w*0.18} cy={h/2} r="3.5" fill="#6f5a4a" stroke="#af9a8a" strokeWidth="0.5" />
+            <line x1={w*0.18} y1={h/2} x2={w*0.18+8} y2={h/2} stroke="#9f8a7a" strokeWidth="1.2" />
+            {/* Aft depth charges */}
+            <circle cx={w*0.78} cy={h/2-3} r="2" fill="#7f6a5a" opacity="0.7" />
+            <circle cx={w*0.78} cy={h/2+3} r="2" fill="#7f6a5a" opacity="0.7" />
+            {/* Smoke stack */}
+            <rect x={w*0.5} y={h/2-6} width="5" height="5" rx="1" fill="#8f7a6a" />
+          </svg>
+        );
+      default:
+        return null;
+    }
+  };
+
+  // Render ship SVG overlays positioned absolutely over the grid
+  const renderShipOverlays = (ships: Ship[]) => {
+    // Grid layout: 28px header + (36px cell + 1px gap) per cell
+    // First cell starts at offset 29px (28px header + 1px padding)
+    const headerSize = 29; // 28px header + 1px grid padding
+    const cellSize = 37; // 36px cell + 1px gap
+
+    return ships.map((ship, idx) => {
+      if (ship.positions.length === 0) return null;
+      // Don't show SVG overlay for fully sunk ships (wreck markers show instead)
+      const isShipSunk = ship.hits.every((h) => h);
+      if (isShipSunk) return null;
+
+      const isHorizontal = ship.positions.length > 1 && ship.positions[0].row === ship.positions[1].row;
+      const startRow = Math.min(...ship.positions.map((p) => p.row));
+      const startCol = Math.min(...ship.positions.map((p) => p.col));
+
+      const left = headerSize + startCol * cellSize;
+      const top = headerSize + startRow * cellSize;
+
+      return (
+        <div
+          key={`ship-overlay-${idx}`}
+          className="ship-svg-overlay"
+          style={{
+            position: 'absolute',
+            left: `${left}px`,
+            top: `${top}px`,
+            width: isHorizontal ? `${ship.size * cellSize - 1}px` : `${cellSize - 1}px`,
+            height: isHorizontal ? `${cellSize - 1}px` : `${ship.size * cellSize - 1}px`,
+            zIndex: 2,
+            pointerEvents: 'none',
+          }}
+        >
+          {renderShipSVG(ship.name, ship.size, isHorizontal)}
+        </div>
+      );
+    });
+  };
+
   // Render a complete board grid
   const renderBoard = (board: Board, isPlayerBoard: boolean, label: string) => (
     <div className={`board-frame ${isPlayerBoard ? 'board-frame-player' : 'board-frame-enemy'}`}>
@@ -976,6 +1174,7 @@ function App() {
         <div
           className="grid grid-10"
           ref={isPlayerBoard ? playerGridRef : enemyGridRef}
+          style={{ position: 'relative' }}
         >
           {/* Corner */}
           <div className="grid-corner grid-header" />
@@ -996,6 +1195,8 @@ function App() {
               )}
             </div>
           ))}
+          {/* Ship SVG overlays (player board only, during gameplay) */}
+          {isPlayerBoard && phase !== 'placement' && renderShipOverlays(playerShips)}
         </div>
       </div>
       <div className="board-frame-bottom" />
