@@ -150,6 +150,10 @@ function App() {
   const [explosion, setExplosion] = useState<ExplosionState>({ active: false, x: 0, y: 0 });
   const explosionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Vader popup state (shown when AI sinks 4/5 player ships)
+  const [vaderPopup, setVaderPopup] = useState(false);
+  const vaderTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   // Board grid refs for calculating projectile coordinates
   const playerGridRef = useRef<HTMLDivElement | null>(null);
   const enemyGridRef = useRef<HTMLDivElement | null>(null);
@@ -332,6 +336,16 @@ function App() {
         addMessage(`AI fired at ${coordLabel}: Hit and sunk your ${result.shipName}!`, 'sunk');
         showBanner('SHIP DESTROYED!', 'sunk');
         showExplosion(target.row, target.col, true);
+
+        // Check if AI has sunk 4 out of 5 player ships — trigger Vader popup
+        const sunkCount = result.ships.filter((s) => s.hits.every((h) => h)).length;
+        if (sunkCount === 4) {
+          if (vaderTimerRef.current) clearTimeout(vaderTimerRef.current);
+          setVaderPopup(true);
+          vaderTimerRef.current = setTimeout(() => {
+            setVaderPopup(false);
+          }, 3500);
+        }
       } else if (result.result === 'hit') {
         addMessage(`AI fired at ${coordLabel}: Hit on your ${result.shipName}!`, 'hit');
         showBanner('DIRECT HIT!', 'hit');
@@ -470,6 +484,18 @@ function App() {
         showSplash(target.row, target.col, true);
       }
 
+      // Check if AI has sunk 4 out of 5 player ships — trigger Vader popup
+      if (result.result === 'sunk') {
+        const sunkCount = result.ships.filter((s) => s.hits.every((h) => h)).length;
+        if (sunkCount === 4) {
+          if (vaderTimerRef.current) clearTimeout(vaderTimerRef.current);
+          setVaderPopup(true);
+          vaderTimerRef.current = setTimeout(() => {
+            setVaderPopup(false);
+          }, 3500);
+        }
+      }
+
       if (allShipsSunk(result.ships)) {
         setPhase('gameOver');
         addMessage('The AI sunk all your ships! You lose.', 'win');
@@ -559,6 +585,7 @@ function App() {
     setBanner({ active: false, text: '', type: 'hit' });
     setExplosion({ active: false, x: 0, y: 0 });
     setSplash({ active: false, x: 0, y: 0 });
+    setVaderPopup(false);
 
     setSim({
       running: true,
@@ -597,6 +624,7 @@ function App() {
     setBanner({ active: false, text: '', type: 'hit' });
     setExplosion({ active: false, x: 0, y: 0 });
     setSplash({ active: false, x: 0, y: 0 });
+    setVaderPopup(false);
     setMessages([{ text: 'Place your ships to begin!', type: 'info' }]);
     setSim({
       running: false,
@@ -985,6 +1013,42 @@ function App() {
       {banner.active && (
         <div className={`battle-banner banner-${banner.type}`}>
           <div className="banner-text">{banner.text}</div>
+        </div>
+      )}
+
+      {/* Darth Vader "I HAVE YOU NOW!" popup when AI sinks 4/5 player ships */}
+      {vaderPopup && (
+        <div className="vader-overlay">
+          <div className="vader-content">
+            <svg className="vader-tie-fighter" viewBox="0 0 200 160" xmlns="http://www.w3.org/2000/svg">
+              {/* TIE Fighter silhouette */}
+              <g fill="#c0c0c0" stroke="#888" strokeWidth="1">
+                {/* Left wing */}
+                <polygon points="30,10 40,10 50,80 40,150 30,150" fill="#555" stroke="#888" />
+                <line x1="35" y1="10" x2="35" y2="150" stroke="#999" strokeWidth="1" />
+                <line x1="30" y1="40" x2="50" y2="40" stroke="#777" strokeWidth="0.5" />
+                <line x1="30" y1="80" x2="50" y2="80" stroke="#777" strokeWidth="0.5" />
+                <line x1="30" y1="120" x2="50" y2="120" stroke="#777" strokeWidth="0.5" />
+                {/* Right wing */}
+                <polygon points="170,10 160,10 150,80 160,150 170,150" fill="#555" stroke="#888" />
+                <line x1="165" y1="10" x2="165" y2="150" stroke="#999" strokeWidth="1" />
+                <line x1="150" y1="40" x2="170" y2="40" stroke="#777" strokeWidth="0.5" />
+                <line x1="150" y1="80" x2="170" y2="80" stroke="#777" strokeWidth="0.5" />
+                <line x1="150" y1="120" x2="170" y2="120" stroke="#777" strokeWidth="0.5" />
+                {/* Wing struts */}
+                <rect x="48" y="72" width="22" height="16" rx="2" fill="#444" stroke="#666" />
+                <rect x="130" y="72" width="22" height="16" rx="2" fill="#444" stroke="#666" />
+                {/* Cockpit ball */}
+                <circle cx="100" cy="80" r="30" fill="#333" stroke="#888" strokeWidth="2" />
+                <circle cx="100" cy="80" r="24" fill="#222" stroke="#666" strokeWidth="1" />
+                {/* Cockpit window */}
+                <circle cx="100" cy="80" r="12" fill="#111" stroke="#ff3333" strokeWidth="1.5" />
+                <line x1="88" y1="80" x2="112" y2="80" stroke="#ff3333" strokeWidth="1" />
+                <line x1="100" y1="68" x2="100" y2="92" stroke="#ff3333" strokeWidth="1" />
+              </g>
+            </svg>
+            <div className="vader-quote">&ldquo;I HAVE YOU NOW!&rdquo;</div>
+          </div>
         </div>
       )}
 
