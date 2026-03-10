@@ -954,32 +954,37 @@ function App() {
 
   // Render a complete board grid
   const renderBoard = (board: Board, isPlayerBoard: boolean, label: string) => (
-    <div className="board-section">
-      <div className="board-label">{label}</div>
-      <div
-        className="grid grid-10"
-        ref={isPlayerBoard ? playerGridRef : enemyGridRef}
-      >
-        {/* Corner */}
-        <div className="grid-corner grid-header" />
-        {/* Column headers */}
-        {COL_LABELS.map((c) => (
-          <div key={`col-${c}`} className="grid-header">
-            {c}
-          </div>
-        ))}
-        {/* Rows */}
-        {Array.from({ length: BOARD_SIZE }, (_, row) => (
-          <div key={`row-${row}`} style={{ display: 'contents' }}>
-            <div className="grid-header">
-              {ROW_LABELS[row]}
-            </div>
-            {Array.from({ length: BOARD_SIZE }, (_, col) =>
-              renderCell(board, row, col, isPlayerBoard)
-            )}
-          </div>
-        ))}
+    <div className={`board-frame ${isPlayerBoard ? 'board-frame-player' : 'board-frame-enemy'}`}>
+      <div className="board-frame-top">
+        <div className="board-label">{label}</div>
       </div>
+      <div className="board-frame-inner">
+        <div
+          className="grid grid-10"
+          ref={isPlayerBoard ? playerGridRef : enemyGridRef}
+        >
+          {/* Corner */}
+          <div className="grid-corner grid-header" />
+          {/* Column headers */}
+          {COL_LABELS.map((c) => (
+            <div key={`col-${c}`} className="grid-header">
+              {c}
+            </div>
+          ))}
+          {/* Rows */}
+          {Array.from({ length: BOARD_SIZE }, (_, row) => (
+            <div key={`row-${row}`} style={{ display: 'contents' }}>
+              <div className="grid-header">
+                {ROW_LABELS[row]}
+              </div>
+              {Array.from({ length: BOARD_SIZE }, (_, col) =>
+                renderCell(board, row, col, isPlayerBoard)
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+      <div className="board-frame-bottom" />
     </div>
   );
 

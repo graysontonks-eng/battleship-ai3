@@ -71,19 +71,102 @@
   position: relative;
 }
 
-.board-section {
+/* Classic plastic game board frame */
+.board-frame {
   display: flex;
   flex-direction: column;
   align-items: center;
+  border-radius: 10px;
+  padding: 6px;
+  position: relative;
+  box-shadow:
+    0 4px 12px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.3);
+}
+
+.board-frame-player {
+  background: linear-gradient(180deg, #2a3a5a 0%, #1e2e4a 40%, #162040 100%);
+  border: 3px solid #3a5070;
+}
+
+.board-frame-enemy {
+  background: linear-gradient(180deg, #4a2a2a 0%, #3a1e1e 40%, #2e1616 100%);
+  border: 3px solid #6a3a3a;
+}
+
+.board-frame-top {
+  width: 100%;
+  padding: 6px 12px 4px;
+  border-radius: 6px 6px 0 0;
+  text-align: center;
+}
+
+.board-frame-player .board-frame-top {
+  background: linear-gradient(180deg, rgba(60, 100, 160, 0.3) 0%, transparent 100%);
+}
+
+.board-frame-enemy .board-frame-top {
+  background: linear-gradient(180deg, rgba(160, 60, 60, 0.3) 0%, transparent 100%);
+}
+
+.board-frame-inner {
+  padding: 4px;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.25);
+  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.4);
+}
+
+.board-frame-bottom {
+  height: 8px;
+  width: 100%;
+  border-radius: 0 0 6px 6px;
+}
+
+.board-frame-player .board-frame-bottom {
+  background: linear-gradient(180deg, transparent 0%, rgba(40, 70, 120, 0.2) 100%);
+}
+
+.board-frame-enemy .board-frame-bottom {
+  background: linear-gradient(180deg, transparent 0%, rgba(120, 40, 40, 0.2) 100%);
+}
+
+/* Hinge connector between boards */
+.boards-container {
+  gap: 0.5rem;
+}
+
+.boards-container::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 12px;
+  height: 80%;
+  background: linear-gradient(90deg, #333 0%, #555 30%, #666 50%, #555 70%, #333 100%);
+  border-radius: 6px;
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  z-index: 1;
+  pointer-events: none;
 }
 
 .board-label {
-  font-size: 1rem;
-  font-weight: 600;
-  margin-bottom: 0.5rem;
-  color: #aaa;
+  font-size: 0.9rem;
+  font-weight: 700;
+  margin-bottom: 0;
   text-transform: uppercase;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.12em;
+}
+
+.board-frame-player .board-label {
+  color: #7ab0e0;
+  text-shadow: 0 0 8px rgba(100, 160, 220, 0.3);
+}
+
+.board-frame-enemy .board-label {
+  color: #e07a7a;
+  text-shadow: 0 0 8px rgba(220, 100, 100, 0.3);
 }
 
 /* Grid */
