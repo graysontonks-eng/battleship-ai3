@@ -85,6 +85,13 @@ interface CaptainAnnouncementState {
   type: 'confirm' | 'destroyed' | 'miss';
 }
 
+interface FogPulseState {
+  active: boolean;
+  row: number;
+  col: number;
+  isEnemyBoard: boolean;
+}
+
 function App() {
   // Game phase
   const [phase, setPhase] = useState<GamePhase>('splash');
@@ -203,6 +210,10 @@ function App() {
 
   // Game over screen state
   const [gameOverScreen, setGameOverScreen] = useState<'victory' | 'defeat' | null>(null);
+
+  // Fog of war pulse state (target cell glow before shot)
+  const [fogPulse, setFogPulse] = useState<FogPulseState>({ active: false, row: 0, col: 0, isEnemyBoard: false });
+  const fogPulseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Board grid refs for calculating projectile coordinates
   const playerGridRef = useRef<HTMLDivElement | null>(null);
@@ -367,6 +378,29 @@ function App() {
     }, 1200);
   }, []);
 
+  // Show fog of war pulse on a target cell before shot fires
+  const showFogPulse = useCallback((row: number, col: number, isEnemyBoard: boolean) => {
+    if (fogPulseTimerRef.current) clearTimeout(fogPulseTimerRef.current);
+    setFogPulse({ active: true, row, col, isEnemyBoard });
+    fogPulseTimerRef.current = setTimeout(() => {
+      setFogPulse({ active: false, row: 0, col: 0, isEnemyBoard: false });
+    }, 400);
+  }, []);
+
+  // Get damage level for a ship (number of hits taken)
+  const getShipDamageLevel = useCallback((ships: Ship[], row: number, col: number): string => {
+    for (const ship of ships) {
+      const posIndex = ship.positions.findIndex((p) => p.row === row && p.col === col);
+      if (posIndex === -1) continue;
+      const hitCount = ship.hits.filter((h) => h).length;
+      if (hitCount >= 3) return 'damage-heavy';
+      if (hitCount >= 2) return 'damage-medium';
+      if (hitCount >= 1) return 'damage-light';
+      return '';
+    }
+    return '';
+  }, []);
+
   // Apply the actual shot result (called after projectile animation completes)
   // target is pre-computed in doSimStep so projectile knows where to fly
   const applyShot = useCallback((who: 'player' | 'ai', target: Position) => {
@@ -502,6 +536,8 @@ function App() {
     if (who === 'ai') {
       showRadarSweep();
     }
+    // Show fog of war pulse on the target cell
+    showFogPulse(target.row, target.col, isEnemyBoard);
     // Show target lock reticle on the target cell
     showTargetLock(target.row, target.col, isEnemyBoard);
 
@@ -541,7 +577,7 @@ function App() {
         }
       }, flightDuration);
     }, lockDelay);
-  }, [applyShot, getCellPosition, showTargetLock, showRadarSweep]);
+  }, [applyShot, getCellPosition, showTargetLock, showRadarSweep, showFogPulse]);
 
   // Simulation loop via useEffect
   const simTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -568,6 +604,10 @@ function App() {
       if (impactFlashTimerRef.current) {
         clearTimeout(impactFlashTimerRef.current);
         impactFlashTimerRef.current = null;
+      }
+      if (fogPulseTimerRef.current) {
+        clearTimeout(fogPulseTimerRef.current);
+        fogPulseTimerRef.current = null;
       }
     };
   }, [sim.running, sim.speed, sim.turn, phase, doSimStep, playerBoard, aiBoard, playerShips, aiShips, aiState]);
@@ -666,7 +706,8 @@ function App() {
 
       const coordLabel = getCoordinateLabel({ row, col });
 
-      // Show target lock reticle on the clicked cell
+      // Show fog of war pulse and target lock reticle on the clicked cell
+      showFogPulse(row, col, true);
       showTargetLock(row, col, true);
 
       if (result.result === 'sunk') {
@@ -709,7 +750,7 @@ function App() {
         doAITurn(aiState, playerBoard, playerShips);
       }, 600);
     },
-    [phase, turn, aiBoard, aiShips, aiState, playerBoard, playerShips, addMessage, doAITurn, sim.running, showBanner, showExplosion, showSplash, showSunkShipImage, showTargetLock, triggerScreenShake, showCaptainAnnouncement]
+    [phase, turn, aiBoard, aiShips, aiState, playerBoard, playerShips, addMessage, doAITurn, sim.running, showBanner, showExplosion, showSplash, showSunkShipImage, showTargetLock, showFogPulse, triggerScreenShake, showCaptainAnnouncement]
   );
 
   // Auto-place ships and start auto-sim
@@ -738,6 +779,7 @@ function App() {
     setRadarSweep({ active: false });
     setScreenShake(false);
     setCaptainAnnouncement({ active: false, text: '', type: 'confirm' });
+    setFogPulse({ active: false, row: 0, col: 0, isEnemyBoard: false });
     setGameOverScreen(null);
 
     setSim({
@@ -793,6 +835,7 @@ function App() {
     setRadarSweep({ active: false });
     setScreenShake(false);
     setCaptainAnnouncement({ active: false, text: '', type: 'confirm' });
+    setFogPulse({ active: false, row: 0, col: 0, isEnemyBoard: false });
     setGameOverScreen(null);
     setMessages([{ text: 'Place your ships to begin!', type: 'info' }]);
     setSim({
@@ -879,6 +922,12 @@ function App() {
       ? lastAIShot?.row === row && lastAIShot?.col === col
       : lastPlayerShot?.row === row && lastPlayerShot?.col === col;
 
+    // Determine if this cell has an active fog pulse
+    const isFogPulse = fogPulse.active
+      && fogPulse.row === row
+      && fogPulse.col === col
+      && ((fogPulse.isEnemyBoard && !isPlayerBoard) || (!fogPulse.isEnemyBoard && isPlayerBoard));
+
     if (isPlayerBoard && phase === 'placement') {
       // Show ship preview
       const preview = getPreviewCells();
@@ -909,15 +958,23 @@ function App() {
       // Player's own board during gameplay - show ships and hits with silhouettes
       // Sunk cells get wreck marker class for burning debris effect
       if (cellState === 'sunk') className += ' sunk wreck';
-      else if (cellState === 'hit') className += ' hit';
+      else if (cellState === 'hit') {
+        className += ' hit';
+        const damageClass = getShipDamageLevel(playerShips, row, col);
+        if (damageClass) className += ` ${damageClass}`;
+      }
       else if (cellState === 'miss') className += ' miss';
       else if (cellState === 'ship') {
         className += ' ship';
         const shapeClass = getShipShapeClass(row, col, playerShips);
         if (shapeClass) className += ` ${shapeClass}`;
+        // Show damage on ship cells that haven't been hit yet but ship has damage
+        const damageClass = getShipDamageLevel(playerShips, row, col);
+        if (damageClass) className += ` ${damageClass}`;
       } else className += ' water';
 
       if (isLastShot) className += ' last-shot';
+      if (isFogPulse) className += ' fog-pulse';
 
       return <div key={`${row}-${col}`} className={className} />;
     }
@@ -934,6 +991,7 @@ function App() {
     }
 
     if (isLastShot) className += ' last-shot';
+    if (isFogPulse) className += ' fog-pulse';
 
     const canClick =
       phase === 'playing' &&
@@ -1167,10 +1225,17 @@ function App() {
       const left = headerSize + startCol * cellSize;
       const top = headerSize + startRow * cellSize;
 
+      // Determine damage level for CSS overlay effects
+      const hitCount = ship.hits.filter((h) => h).length;
+      let damageClass = '';
+      if (hitCount >= 3) damageClass = 'ship-overlay-damage-heavy';
+      else if (hitCount >= 2) damageClass = 'ship-overlay-damage-medium';
+      else if (hitCount >= 1) damageClass = 'ship-overlay-damage-light';
+
       return (
         <div
           key={`ship-overlay-${idx}`}
-          className="ship-svg-overlay"
+          className={`ship-svg-overlay ${damageClass}`}
           style={{
             position: 'absolute',
             left: `${left}px`,
@@ -1406,6 +1471,51 @@ function App() {
     }
   };
 
+  // Render mini ship silhouette SVG for fleet status indicator
+  const renderFleetShipSVG = (shipName: string, size: number) => {
+    const w = size * 16;
+    const h = 12;
+    switch (shipName) {
+      case 'Carrier':
+        return (
+          <svg viewBox={`0 0 ${w} ${h}`} width={w} height={h} xmlns="http://www.w3.org/2000/svg">
+            <path d={`M2,${h/2} L${w*0.1},${h*0.2} L${w*0.9},${h*0.2} L${w-2},${h/2} L${w*0.9},${h*0.8} L${w*0.1},${h*0.8} Z`} fill="currentColor" />
+            <rect x={w*0.15} y={h*0.15} width={w*0.65} height={h*0.15} rx="1" fill="currentColor" opacity="0.5" />
+          </svg>
+        );
+      case 'Battleship':
+        return (
+          <svg viewBox={`0 0 ${w} ${h}`} width={w} height={h} xmlns="http://www.w3.org/2000/svg">
+            <path d={`M2,${h/2} L${w*0.12},${h*0.25} L${w*0.88},${h*0.25} L${w-2},${h/2} L${w*0.88},${h*0.75} L${w*0.12},${h*0.75} Z`} fill="currentColor" />
+            <circle cx={w*0.3} cy={h/2} r="2" fill="currentColor" opacity="0.5" />
+            <circle cx={w*0.6} cy={h/2} r="2" fill="currentColor" opacity="0.5" />
+          </svg>
+        );
+      case 'Cruiser':
+        return (
+          <svg viewBox={`0 0 ${w} ${h}`} width={w} height={h} xmlns="http://www.w3.org/2000/svg">
+            <path d={`M2,${h/2} L${w*0.15},${h*0.25} L${w*0.85},${h*0.25} L${w-2},${h/2} L${w*0.85},${h*0.75} L${w*0.15},${h*0.75} Z`} fill="currentColor" />
+            <line x1={w*0.5} y1={h*0.1} x2={w*0.5} y2={h*0.4} stroke="currentColor" strokeWidth="1" opacity="0.5" />
+          </svg>
+        );
+      case 'Submarine':
+        return (
+          <svg viewBox={`0 0 ${w} ${h}`} width={w} height={h} xmlns="http://www.w3.org/2000/svg">
+            <ellipse cx={w/2} cy={h/2} rx={w*0.45} ry={h*0.35} fill="currentColor" />
+            <rect x={w*0.4} y={h*0.1} width={w*0.1} height={h*0.25} rx="1" fill="currentColor" opacity="0.6" />
+          </svg>
+        );
+      case 'Destroyer':
+        return (
+          <svg viewBox={`0 0 ${w} ${h}`} width={w} height={h} xmlns="http://www.w3.org/2000/svg">
+            <path d={`M2,${h/2} L${w*0.2},${h*0.3} L${w*0.8},${h*0.3} L${w-2},${h/2} L${w*0.8},${h*0.7} L${w*0.2},${h*0.7} Z`} fill="currentColor" />
+          </svg>
+        );
+      default:
+        return null;
+    }
+  };
+
   // Render the scoreboard showing remaining ships for each side
   const renderScoreboard = () => {
     const playerShipStatus = SHIP_CONFIGS.map((config) => {
@@ -1431,7 +1541,10 @@ function App() {
           <div className="fleet-ship-icons">
             {playerShipStatus.map((s) => (
               <div key={s.name} className={`fleet-ship-icon ${s.sunk ? 'sunk' : 'active'}`} title={s.name}>
-                <div className="fleet-ship-bar" style={{ width: `${s.size * 14}px` }} />
+                <div className="fleet-ship-silhouette">
+                  {renderFleetShipSVG(s.name, s.size)}
+                  {s.sunk && <div className="fleet-ship-explosion" />}
+                </div>
                 <span className="fleet-ship-name">{s.name}</span>
               </div>
             ))}
@@ -1450,7 +1563,10 @@ function App() {
           <div className="fleet-ship-icons">
             {aiShipStatus.map((s) => (
               <div key={s.name} className={`fleet-ship-icon ${s.sunk ? 'sunk' : 'active'}`} title={s.name}>
-                <div className="fleet-ship-bar" style={{ width: `${s.size * 14}px` }} />
+                <div className="fleet-ship-silhouette">
+                  {renderFleetShipSVG(s.name, s.size)}
+                  {s.sunk && <div className="fleet-ship-explosion" />}
+                </div>
                 <span className="fleet-ship-name">{s.name}</span>
               </div>
             ))}

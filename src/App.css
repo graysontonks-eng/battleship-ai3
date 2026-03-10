@@ -1270,30 +1270,13 @@
 }
 
 .fleet-ship-icon.sunk {
-  opacity: 0.35;
-}
-
-.fleet-ship-icon.sunk .fleet-ship-bar {
-  background: #633 !important;
-  box-shadow: none !important;
+  opacity: 1;
+  transition: opacity 0.5s ease 0.8s;
 }
 
 .fleet-ship-icon.sunk .fleet-ship-name {
   text-decoration: line-through;
   color: #666;
-}
-
-.fleet-ship-bar {
-  height: 6px;
-  background: linear-gradient(90deg, #4a8, #5b9);
-  border-radius: 3px;
-  box-shadow: 0 0 4px rgba(80, 180, 130, 0.4);
-  transition: background 0.3s ease;
-}
-
-.ai-side .fleet-ship-bar {
-  background: linear-gradient(90deg, #c55, #d66);
-  box-shadow: 0 0 4px rgba(200, 80, 80, 0.4);
 }
 
 .fleet-ship-name {
@@ -1686,6 +1669,218 @@
   25% { opacity: 1; transform: translateY(0); }
   80% { opacity: 1; }
   100% { opacity: 0; }
+}
+
+/* ============================================
+   FOG OF WAR PULSE
+   ============================================ */
+.cell.fog-pulse {
+  animation: fog-pulse-glow 0.4s ease-out;
+  z-index: 3;
+}
+
+@keyframes fog-pulse-glow {
+  0% {
+    box-shadow: 0 0 0 0 rgba(0, 200, 255, 0.8), inset 0 0 0 0 rgba(0, 200, 255, 0.4);
+    background-color: rgba(0, 200, 255, 0.15);
+  }
+  40% {
+    box-shadow: 0 0 18px 6px rgba(0, 200, 255, 0.7), inset 0 0 12px 2px rgba(0, 200, 255, 0.5);
+    background-color: rgba(0, 200, 255, 0.35);
+  }
+  100% {
+    box-shadow: 0 0 4px 1px rgba(0, 200, 255, 0.2), inset 0 0 2px 0 rgba(0, 200, 255, 0.1);
+    background-color: rgba(0, 200, 255, 0.05);
+  }
+}
+
+/* ============================================
+   SHIP DAMAGE PROGRESSION
+   ============================================ */
+
+/* Light damage (1 hit) — small smoke wisps */
+.cell.damage-light {
+  position: relative;
+}
+.cell.damage-light::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: 3px;
+  background:
+    radial-gradient(ellipse 60% 40% at 50% 30%, rgba(150, 150, 150, 0.45) 0%, transparent 70%);
+  animation: smoke-drift 2s ease-in-out infinite;
+  pointer-events: none;
+  z-index: 3;
+}
+
+@keyframes smoke-drift {
+  0% { opacity: 0.4; transform: translateY(0); }
+  50% { opacity: 0.7; transform: translateY(-3px); }
+  100% { opacity: 0.4; transform: translateY(0); }
+}
+
+/* Medium damage (2 hits) — fire */
+.cell.damage-medium {
+  position: relative;
+}
+.cell.damage-medium::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: 3px;
+  background:
+    radial-gradient(ellipse 50% 60% at 40% 40%, rgba(255, 120, 20, 0.6) 0%, transparent 60%),
+    radial-gradient(ellipse 40% 50% at 60% 50%, rgba(255, 80, 0, 0.5) 0%, transparent 55%);
+  animation: fire-flicker 0.6s ease-in-out infinite alternate;
+  pointer-events: none;
+  z-index: 3;
+}
+
+@keyframes fire-flicker {
+  0% { opacity: 0.6; transform: scaleY(1) translateY(0); }
+  50% { opacity: 0.9; transform: scaleY(1.1) translateY(-2px); }
+  100% { opacity: 0.7; transform: scaleY(0.95) translateY(1px); }
+}
+
+/* Heavy damage (3+ hits) — heavy flames */
+.cell.damage-heavy {
+  position: relative;
+}
+.cell.damage-heavy::after {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  width: calc(100% + 4px);
+  height: calc(100% + 4px);
+  border-radius: 3px;
+  background:
+    radial-gradient(ellipse 60% 70% at 35% 35%, rgba(255, 60, 0, 0.7) 0%, transparent 55%),
+    radial-gradient(ellipse 50% 60% at 65% 45%, rgba(255, 160, 0, 0.65) 0%, transparent 50%),
+    radial-gradient(ellipse 45% 55% at 50% 60%, rgba(255, 40, 0, 0.6) 0%, transparent 50%);
+  animation: heavy-flames 0.4s ease-in-out infinite alternate;
+  pointer-events: none;
+  z-index: 3;
+}
+
+@keyframes heavy-flames {
+  0% { opacity: 0.7; transform: scaleY(1) translateY(0); }
+  33% { opacity: 1; transform: scaleY(1.15) translateY(-3px); }
+  66% { opacity: 0.85; transform: scaleY(1.05) translateY(-1px); }
+  100% { opacity: 0.9; transform: scaleY(0.95) translateY(1px); }
+}
+
+/* Ship overlay damage classes */
+.ship-svg-overlay.ship-overlay-damage-light {
+  filter: brightness(0.9);
+}
+.ship-svg-overlay.ship-overlay-damage-light::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(ellipse 40% 50% at 50% 30%, rgba(150, 150, 150, 0.4) 0%, transparent 70%);
+  animation: smoke-drift 2s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.ship-svg-overlay.ship-overlay-damage-medium {
+  filter: brightness(0.85) saturate(1.2);
+}
+.ship-svg-overlay.ship-overlay-damage-medium::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background:
+    radial-gradient(ellipse 35% 50% at 30% 40%, rgba(255, 120, 20, 0.5) 0%, transparent 60%),
+    radial-gradient(ellipse 35% 50% at 70% 50%, rgba(255, 80, 0, 0.4) 0%, transparent 55%);
+  animation: fire-flicker 0.6s ease-in-out infinite alternate;
+  pointer-events: none;
+}
+
+.ship-svg-overlay.ship-overlay-damage-heavy {
+  filter: brightness(0.7) saturate(1.5);
+}
+.ship-svg-overlay.ship-overlay-damage-heavy::after {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  width: calc(100% + 4px);
+  height: calc(100% + 4px);
+  background:
+    radial-gradient(ellipse 30% 60% at 25% 35%, rgba(255, 60, 0, 0.6) 0%, transparent 55%),
+    radial-gradient(ellipse 30% 50% at 55% 45%, rgba(255, 160, 0, 0.55) 0%, transparent 50%),
+    radial-gradient(ellipse 30% 55% at 80% 50%, rgba(255, 40, 0, 0.5) 0%, transparent 50%);
+  animation: heavy-flames 0.4s ease-in-out infinite alternate;
+  pointer-events: none;
+}
+
+/* ============================================
+   FLEET STATUS INDICATOR — Ship Silhouettes
+   ============================================ */
+
+.fleet-ship-silhouette {
+  position: relative;
+  display: flex;
+  align-items: center;
+  color: #6cb;
+  transition: color 0.5s ease, opacity 0.5s ease;
+}
+
+.ai-side .fleet-ship-silhouette {
+  color: #d77;
+}
+
+.fleet-ship-icon.sunk .fleet-ship-silhouette {
+  color: #555;
+  opacity: 0.4;
+}
+
+/* Explosion burst when ship sinks */
+.fleet-ship-explosion {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 30px;
+  height: 30px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 200, 50, 0.9), rgba(255, 80, 0, 0.7), transparent 70%);
+  animation: fleet-explosion-burst 0.8s ease-out forwards;
+  pointer-events: none;
+  z-index: 5;
+}
+
+@keyframes fleet-explosion-burst {
+  0% {
+    transform: translate(-50%, -50%) scale(0.2);
+    opacity: 1;
+  }
+  40% {
+    transform: translate(-50%, -50%) scale(1.5);
+    opacity: 0.9;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(2);
+    opacity: 0;
+  }
+}
+
+.fleet-ship-icon.sunk .fleet-ship-name {
+  color: #666;
 }
 
 /* Game actions */
