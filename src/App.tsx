@@ -39,6 +39,12 @@ interface SimState {
   playerAI: AIState; // AI state for auto-playing the player side
 }
 
+interface ProjectileState {
+  active: boolean;
+  direction: 'left-to-right' | 'right-to-left'; // player fires right, AI fires left
+  result: 'hit' | 'miss' | 'sunk' | null;
+}
+
 function App() {
   // Game phase
   const [phase, setPhase] = useState<GamePhase>('placement');
@@ -102,6 +108,15 @@ function App() {
   // Last shot highlight
   const [lastPlayerShot, setLastPlayerShot] = useState<Position | null>(null);
   const [lastAIShot, setLastAIShot] = useState<Position | null>(null);
+
+  // Projectile animation state
+  const [projectile, setProjectile] = useState<ProjectileState>({
+    active: false,
+    direction: 'left-to-right',
+    result: null,
+  });
+  const projectileTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingShotRef = useRef<(() => void) | null>(null);
 
   // Messages
   const [messages, setMessages] = useState<GameMessage[]>([
@@ -170,20 +185,18 @@ function App() {
     );
   }, []);
 
-  // Execute one simulation step
-  const doSimStep = useCallback(() => {
+  // Apply the actual shot result (called after projectile animation completes)
+  const applyShot = useCallback((who: 'player' | 'ai') => {
     if (phaseRef.current !== 'playing') return;
     const currentSim = simRef.current;
 
-    if (currentSim.turn === 'player') {
-      // Player side auto-fires at AI board
+    if (who === 'player') {
       const target = getAIShot(currentSim.playerAI);
       const result = processShot(aiBoardRef.current, aiShipsRef.current, target);
       setAiBoard(result.board);
       setAiShips(result.ships);
       setLastPlayerShot(target);
 
-      // Update the player's AI state after the shot
       let sunkShipPositions: Position[] | undefined;
       if (result.result === 'sunk' && result.shipName) {
         const sunkShip = result.ships.find((s) => s.name === result.shipName);
@@ -200,17 +213,20 @@ function App() {
         addMessage(`Player fired at ${coordLabel}: Miss.`, 'miss');
       }
 
+      // Show impact result on projectile briefly
+      setProjectile((prev) => ({ ...prev, result: result.result }));
+
       if (allShipsSunk(result.ships)) {
         setPhase('gameOver');
         addMessage('Player sunk all enemy ships! Player wins!', 'win');
         setSim((prev) => ({ ...prev, running: false, playerAI: newPlayerAI }));
+        setProjectile({ active: false, direction: 'left-to-right', result: null });
         return;
       }
 
       setTurn('ai');
       setSim((prev) => ({ ...prev, turn: 'ai', playerAI: newPlayerAI }));
     } else {
-      // AI fires at player board
       const target = getAIShot(aiStateRef.current);
       const result = processShot(playerBoardRef.current, playerShipsRef.current, target);
       setPlayerBoard(result.board);
@@ -234,10 +250,13 @@ function App() {
         addMessage(`AI fired at ${coordLabel}: Miss.`, 'miss');
       }
 
+      setProjectile((prev) => ({ ...prev, result: result.result }));
+
       if (allShipsSunk(result.ships)) {
         setPhase('gameOver');
         addMessage('AI sunk all your ships! AI wins!', 'win');
         setSim((prev) => ({ ...prev, running: false }));
+        setProjectile({ active: false, direction: 'right-to-left', result: null });
         return;
       }
 
@@ -245,6 +264,38 @@ function App() {
       setSim((prev) => ({ ...prev, turn: 'player' }));
     }
   }, [addMessage]);
+
+  // Execute one simulation step: launch projectile, then apply shot on impact
+  const doSimStep = useCallback(() => {
+    if (phaseRef.current !== 'playing') return;
+    const currentSim = simRef.current;
+    const who = currentSim.turn;
+    const direction = who === 'player' ? 'left-to-right' as const : 'right-to-left' as const;
+
+    // Calculate projectile flight duration based on sim speed
+    // Flight takes ~40% of the interval between shots, min 80ms, max 400ms
+    const flightDuration = Math.max(80, Math.min(400, currentSim.speed * 0.4));
+
+    // Launch projectile
+    setProjectile({ active: true, direction, result: null });
+
+    // Store the pending shot application
+    pendingShotRef.current = () => {
+      applyShot(who);
+      // Clear projectile after a brief impact flash
+      projectileTimerRef.current = setTimeout(() => {
+        setProjectile({ active: false, direction: 'left-to-right', result: null });
+      }, Math.max(50, flightDuration * 0.3));
+    };
+
+    // Apply shot after projectile reaches target
+    projectileTimerRef.current = setTimeout(() => {
+      if (pendingShotRef.current) {
+        pendingShotRef.current();
+        pendingShotRef.current = null;
+      }
+    }, flightDuration);
+  }, [applyShot]);
 
   // Simulation loop via useEffect
   const simTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -259,6 +310,10 @@ function App() {
       if (simTimerRef.current) {
         clearTimeout(simTimerRef.current);
         simTimerRef.current = null;
+      }
+      if (projectileTimerRef.current) {
+        clearTimeout(projectileTimerRef.current);
+        projectileTimerRef.current = null;
       }
     };
   }, [sim.running, sim.speed, sim.turn, phase, doSimStep, playerBoard, aiBoard, playerShips, aiShips, aiState]);
@@ -380,6 +435,7 @@ function App() {
     setLastPlayerShot(null);
     setLastAIShot(null);
     setMessages([{ text: 'Auto Battle started! Watch the action unfold.', type: 'info' }]);
+    setProjectile({ active: false, direction: 'left-to-right', result: null });
 
     setSim({
       running: true,
@@ -414,6 +470,7 @@ function App() {
     setHoverPos(null);
     setLastPlayerShot(null);
     setLastAIShot(null);
+    setProjectile({ active: false, direction: 'left-to-right', result: null });
     setMessages([{ text: 'Place your ships to begin!', type: 'info' }]);
     setSim({
       running: false,
@@ -718,8 +775,20 @@ function App() {
 
       <div className="boards-container">
         {renderBoard(playerBoard, true, phase === 'placement' ? 'Place Your Ships' : 'Your Ocean')}
-        {phase !== 'placement' &&
-          renderBoard(aiBoard, false, sim.running ? 'Enemy Waters' : 'Enemy Waters (Click to Fire)')}
+        {phase !== 'placement' && (
+          <>
+            {/* Projectile animation overlay */}
+            {projectile.active && (
+              <div className={`projectile-container ${projectile.direction}`}>
+                <div className={`projectile ${projectile.result ? `impact-${projectile.result}` : ''}`}>
+                  <div className="projectile-body" />
+                  <div className="projectile-trail" />
+                </div>
+              </div>
+            )}
+            {renderBoard(aiBoard, false, sim.running ? 'Enemy Waters' : 'Enemy Waters (Click to Fire)')}
+          </>
+        )}
       </div>
 
       {phase === 'gameOver' && (

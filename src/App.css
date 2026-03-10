@@ -68,6 +68,7 @@
   flex-wrap: wrap;
   justify-content: center;
   margin-bottom: 1rem;
+  position: relative;
 }
 
 .board-section {
@@ -471,6 +472,147 @@
   background-color: #2255aa;
   border-color: #4488ff;
   color: #bbddff;
+}
+
+/* Projectile animation */
+.projectile-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 10;
+  overflow: hidden;
+}
+
+.projectile-container .projectile {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+/* Player fires left-to-right */
+.projectile-container.left-to-right .projectile {
+  animation: fly-left-to-right 0.35s ease-in forwards;
+}
+
+/* AI fires right-to-left */
+.projectile-container.right-to-left .projectile {
+  animation: fly-right-to-left 0.35s ease-in forwards;
+}
+
+.projectile-body {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #ffdd44 30%, #ff6622 70%, transparent 100%);
+  box-shadow:
+    0 0 12px 4px #ffaa22,
+    0 0 24px 8px rgba(255, 170, 34, 0.4),
+    0 0 40px 12px rgba(255, 100, 0, 0.2);
+  position: relative;
+  z-index: 2;
+}
+
+.projectile-trail {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  height: 4px;
+  border-radius: 2px;
+  z-index: 1;
+}
+
+.left-to-right .projectile-trail {
+  right: 12px;
+  width: 60px;
+  background: linear-gradient(to left, #ffaa22, #ff6622 40%, transparent);
+}
+
+.right-to-left .projectile-trail {
+  left: 12px;
+  width: 60px;
+  background: linear-gradient(to right, #ffaa22, #ff6622 40%, transparent);
+}
+
+/* Impact states */
+.projectile.impact-hit .projectile-body,
+.projectile.impact-sunk .projectile-body {
+  background: radial-gradient(circle, #ffffff 20%, #ff4444 50%, transparent 100%);
+  box-shadow:
+    0 0 16px 8px #ff4444,
+    0 0 32px 12px rgba(255, 68, 68, 0.5),
+    0 0 48px 16px rgba(255, 0, 0, 0.2);
+  animation: impact-burst 0.3s ease-out;
+}
+
+.projectile.impact-miss .projectile-body {
+  background: radial-gradient(circle, #ffffff 20%, #4488ff 50%, transparent 100%);
+  box-shadow:
+    0 0 12px 6px #4488ff,
+    0 0 24px 10px rgba(68, 136, 255, 0.4);
+  animation: impact-splash 0.3s ease-out;
+}
+
+.projectile.impact-hit .projectile-trail,
+.projectile.impact-sunk .projectile-trail,
+.projectile.impact-miss .projectile-trail {
+  opacity: 0;
+}
+
+@keyframes fly-left-to-right {
+  0% {
+    left: 15%;
+    opacity: 0;
+  }
+  15% {
+    opacity: 1;
+  }
+  100% {
+    left: 80%;
+    opacity: 1;
+  }
+}
+
+@keyframes fly-right-to-left {
+  0% {
+    right: 15%;
+    opacity: 0;
+  }
+  15% {
+    opacity: 1;
+  }
+  100% {
+    right: 80%;
+    opacity: 1;
+  }
+}
+
+@keyframes impact-burst {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(2.5);
+  }
+  100% {
+    transform: scale(0.5);
+    opacity: 0.3;
+  }
+}
+
+@keyframes impact-splash {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.8);
+  }
+  100% {
+    transform: scale(0.5);
+    opacity: 0.3;
+  }
 }
 
 /* Game actions */
