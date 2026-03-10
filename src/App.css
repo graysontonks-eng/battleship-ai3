@@ -1361,6 +1361,111 @@
   100% { opacity: 0; transform: translateX(-50%) translateY(-5px); }
 }
 
+/* Game Over / Victory screen overlay */
+.game-over-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 250;
+  pointer-events: none;
+}
+
+.game-over-overlay.victory {
+  background: radial-gradient(ellipse at center, rgba(0, 40, 10, 0.9) 0%, rgba(0, 20, 5, 0.7) 50%, transparent 100%);
+  animation: game-over-bg-fade 5s ease-in-out forwards;
+}
+
+.game-over-overlay.defeat {
+  background: radial-gradient(ellipse at center, rgba(60, 0, 0, 0.9) 0%, rgba(30, 0, 0, 0.7) 50%, transparent 100%);
+  animation: game-over-bg-fade 5s ease-in-out forwards;
+}
+
+.game-over-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  animation: game-over-zoom 0.8s cubic-bezier(0.2, 0.8, 0.3, 1.2) forwards;
+}
+
+.game-over-title {
+  font-size: 5rem;
+  font-weight: 900;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  animation: game-over-title-pulse 5s ease-in-out forwards;
+}
+
+.victory .game-over-title {
+  color: #ffd700;
+  text-shadow:
+    0 0 20px rgba(255, 215, 0, 0.8),
+    0 0 40px rgba(255, 200, 0, 0.5),
+    0 0 80px rgba(255, 180, 0, 0.3),
+    2px 2px 4px rgba(0, 0, 0, 0.9);
+}
+
+.defeat .game-over-title {
+  color: #ff2222;
+  text-shadow:
+    0 0 20px rgba(255, 30, 30, 0.8),
+    0 0 40px rgba(255, 0, 0, 0.5),
+    0 0 80px rgba(200, 0, 0, 0.3),
+    2px 2px 4px rgba(0, 0, 0, 0.9);
+}
+
+.game-over-subtitle {
+  font-size: 1.5rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  animation: game-over-subtitle-fade 5s ease-in-out forwards;
+}
+
+.victory .game-over-subtitle {
+  color: #a0e8a0;
+  text-shadow: 0 0 10px rgba(100, 220, 100, 0.5), 1px 1px 3px rgba(0, 0, 0, 0.8);
+}
+
+.defeat .game-over-subtitle {
+  color: #ffa0a0;
+  text-shadow: 0 0 10px rgba(255, 100, 100, 0.5), 1px 1px 3px rgba(0, 0, 0, 0.8);
+}
+
+@keyframes game-over-bg-fade {
+  0% { opacity: 0; }
+  10% { opacity: 1; }
+  80% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+@keyframes game-over-zoom {
+  0% { transform: scale(0.3) translateY(40px); opacity: 0; }
+  50% { transform: scale(1.1) translateY(-5px); opacity: 1; }
+  100% { transform: scale(1) translateY(0); opacity: 1; }
+}
+
+@keyframes game-over-title-pulse {
+  0% { transform: scale(0.5); opacity: 0; }
+  12% { transform: scale(1.15); opacity: 1; }
+  20% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+  80% { transform: scale(1); opacity: 1; }
+  100% { transform: scale(1.2); opacity: 0; }
+}
+
+@keyframes game-over-subtitle-fade {
+  0% { opacity: 0; transform: translateY(10px); }
+  15% { opacity: 0; }
+  25% { opacity: 1; transform: translateY(0); }
+  80% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
 /* Game actions */
 .game-actions {
   margin-top: 1rem;

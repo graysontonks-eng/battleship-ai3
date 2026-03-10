@@ -198,6 +198,9 @@ function App() {
   const [captainAnnouncement, setCaptainAnnouncement] = useState<CaptainAnnouncementState>({ active: false, text: '', type: 'confirm' });
   const captainTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Game over screen state
+  const [gameOverScreen, setGameOverScreen] = useState<'victory' | 'defeat' | null>(null);
+
   // Board grid refs for calculating projectile coordinates
   const playerGridRef = useRef<HTMLDivElement | null>(null);
   const enemyGridRef = useRef<HTMLDivElement | null>(null);
@@ -404,6 +407,7 @@ function App() {
 
       if (allShipsSunk(result.ships)) {
         setPhase('gameOver');
+        setGameOverScreen('victory');
         addMessage('Player sunk all enemy ships! Player wins!', 'win');
         setSim((prev) => ({ ...prev, running: false, playerAI: newPlayerAI }));
         setProjectile((prev) => ({ ...prev, active: false, result: null }));
@@ -459,6 +463,7 @@ function App() {
 
       if (allShipsSunk(result.ships)) {
         setPhase('gameOver');
+        setGameOverScreen('defeat');
         addMessage('AI sunk all your ships! AI wins!', 'win');
         setSim((prev) => ({ ...prev, running: false }));
         setProjectile((prev) => ({ ...prev, active: false, result: null }));
@@ -727,6 +732,7 @@ function App() {
     setRadarSweep({ active: false });
     setScreenShake(false);
     setCaptainAnnouncement({ active: false, text: '', type: 'confirm' });
+    setGameOverScreen(null);
 
     setSim({
       running: true,
@@ -771,6 +777,7 @@ function App() {
     setRadarSweep({ active: false });
     setScreenShake(false);
     setCaptainAnnouncement({ active: false, text: '', type: 'confirm' });
+    setGameOverScreen(null);
     setMessages([{ text: 'Place your ships to begin!', type: 'info' }]);
     setSim({
       running: false,
@@ -1450,6 +1457,21 @@ function App() {
               </g>
             </svg>
             <div className="vader-quote">&ldquo;I HAVE YOU NOW!&rdquo;</div>
+          </div>
+        </div>
+      )}
+
+      {gameOverScreen && (
+        <div className={`game-over-overlay ${gameOverScreen}`}>
+          <div className="game-over-content">
+            <div className="game-over-title">
+              {gameOverScreen === 'victory' ? 'VICTORY!' : 'GAME OVER'}
+            </div>
+            <div className="game-over-subtitle">
+              {gameOverScreen === 'victory'
+                ? 'All enemy ships have been destroyed!'
+                : 'Your fleet has been annihilated!'}
+            </div>
           </div>
         </div>
       )}
