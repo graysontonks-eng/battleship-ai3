@@ -1883,6 +1883,150 @@
   color: #666;
 }
 
+/* ============================================
+   TACTICAL GRID OVERLAY — Targeting Computer
+   ============================================ */
+
+.tactical-grid-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 10;
+  border: 2px solid rgba(0, 255, 100, 0.5);
+  border-radius: 4px;
+  overflow: hidden;
+  animation: tactical-fade-in 0.15s ease-out forwards;
+  background:
+    repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 9.09%,
+      rgba(0, 255, 100, 0.06) 9.09%,
+      rgba(0, 255, 100, 0.06) 9.15%
+    ),
+    repeating-linear-gradient(
+      90deg,
+      transparent,
+      transparent 9.09%,
+      rgba(0, 255, 100, 0.06) 9.09%,
+      rgba(0, 255, 100, 0.06) 9.15%
+    );
+}
+
+@keyframes tactical-fade-in {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+/* Scanning line sweeping down the board */
+.tactical-scanline {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(0, 255, 100, 0.2) 20%,
+    rgba(0, 255, 100, 0.6) 50%,
+    rgba(0, 255, 100, 0.2) 80%,
+    transparent 100%
+  );
+  box-shadow: 0 0 8px 2px rgba(0, 255, 100, 0.3);
+  animation: tactical-scan-down 0.5s linear forwards;
+}
+
+@keyframes tactical-scan-down {
+  0% { top: 0%; }
+  100% { top: 100%; }
+}
+
+/* Horizontal crosshair line */
+.tactical-crosshair-h {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 100%;
+  height: 1px;
+  background: rgba(0, 255, 100, 0.2);
+  transform: translateY(-0.5px);
+}
+
+/* Vertical crosshair line */
+.tactical-crosshair-v {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 1px;
+  height: 100%;
+  background: rgba(0, 255, 100, 0.2);
+  transform: translateX(-0.5px);
+}
+
+/* Corner brackets — targeting frame */
+.tactical-corner {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  border-color: rgba(0, 255, 100, 0.7);
+  border-style: solid;
+  border-width: 0;
+}
+
+.tactical-corner-tl {
+  top: 4px;
+  left: 4px;
+  border-top-width: 2px;
+  border-left-width: 2px;
+}
+
+.tactical-corner-tr {
+  top: 4px;
+  right: 4px;
+  border-top-width: 2px;
+  border-right-width: 2px;
+}
+
+.tactical-corner-bl {
+  bottom: 4px;
+  left: 4px;
+  border-bottom-width: 2px;
+  border-left-width: 2px;
+}
+
+.tactical-corner-br {
+  bottom: 4px;
+  right: 4px;
+  border-bottom-width: 2px;
+  border-right-width: 2px;
+}
+
+/* "TARGETING SYSTEM ACTIVE" label */
+.tactical-label {
+  position: absolute;
+  bottom: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 9px;
+  letter-spacing: 2px;
+  color: rgba(0, 255, 100, 0.7);
+  text-transform: uppercase;
+  white-space: nowrap;
+  text-shadow: 0 0 4px rgba(0, 255, 100, 0.5);
+  animation: tactical-label-blink 0.3s ease-in-out 2;
+}
+
+@keyframes tactical-label-blink {
+  0% { opacity: 1; }
+  50% { opacity: 0.3; }
+  100% { opacity: 1; }
+}
+
 /* Game actions */
 .game-actions {
   margin-top: 1rem;
