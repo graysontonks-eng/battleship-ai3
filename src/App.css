@@ -905,7 +905,7 @@
 
 .vader-tie-fighter {
   width: 220px;
-  height: 180px;
+  height: 264px;
   filter: drop-shadow(0 0 20px rgba(255, 50, 50, 0.6)) drop-shadow(0 0 40px rgba(255, 50, 50, 0.3));
   animation: vader-ship-fly 3.5s ease-out forwards;
 }

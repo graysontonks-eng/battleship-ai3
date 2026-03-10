@@ -1235,31 +1235,68 @@ function App() {
       {vaderPopup && (
         <div className="vader-overlay">
           <div className="vader-content">
-            <svg className="vader-tie-fighter" viewBox="0 0 200 160" xmlns="http://www.w3.org/2000/svg">
-              {/* TIE Fighter silhouette */}
-              <g fill="#c0c0c0" stroke="#888" strokeWidth="1">
-                {/* Left wing */}
-                <polygon points="30,10 40,10 50,80 40,150 30,150" fill="#555" stroke="#888" />
-                <line x1="35" y1="10" x2="35" y2="150" stroke="#999" strokeWidth="1" />
-                <line x1="30" y1="40" x2="50" y2="40" stroke="#777" strokeWidth="0.5" />
-                <line x1="30" y1="80" x2="50" y2="80" stroke="#777" strokeWidth="0.5" />
-                <line x1="30" y1="120" x2="50" y2="120" stroke="#777" strokeWidth="0.5" />
-                {/* Right wing */}
-                <polygon points="170,10 160,10 150,80 160,150 170,150" fill="#555" stroke="#888" />
-                <line x1="165" y1="10" x2="165" y2="150" stroke="#999" strokeWidth="1" />
-                <line x1="150" y1="40" x2="170" y2="40" stroke="#777" strokeWidth="0.5" />
-                <line x1="150" y1="80" x2="170" y2="80" stroke="#777" strokeWidth="0.5" />
-                <line x1="150" y1="120" x2="170" y2="120" stroke="#777" strokeWidth="0.5" />
-                {/* Wing struts */}
-                <rect x="48" y="72" width="22" height="16" rx="2" fill="#444" stroke="#666" />
-                <rect x="130" y="72" width="22" height="16" rx="2" fill="#444" stroke="#666" />
-                {/* Cockpit ball */}
-                <circle cx="100" cy="80" r="30" fill="#333" stroke="#888" strokeWidth="2" />
-                <circle cx="100" cy="80" r="24" fill="#222" stroke="#666" strokeWidth="1" />
-                {/* Cockpit window */}
-                <circle cx="100" cy="80" r="12" fill="#111" stroke="#ff3333" strokeWidth="1.5" />
-                <line x1="88" y1="80" x2="112" y2="80" stroke="#ff3333" strokeWidth="1" />
-                <line x1="100" y1="68" x2="100" y2="92" stroke="#ff3333" strokeWidth="1" />
+            <svg className="vader-tie-fighter" viewBox="0 0 200 240" xmlns="http://www.w3.org/2000/svg">
+              {/* Darth Vader helmet portrait */}
+              <defs>
+                <radialGradient id="vaderHelmetGrad" cx="50%" cy="40%" r="50%">
+                  <stop offset="0%" stopColor="#444" />
+                  <stop offset="100%" stopColor="#111" />
+                </radialGradient>
+                <radialGradient id="vaderFaceGrad" cx="50%" cy="50%" r="50%">
+                  <stop offset="0%" stopColor="#333" />
+                  <stop offset="100%" stopColor="#0a0a0a" />
+                </radialGradient>
+              </defs>
+              <g>
+                {/* Helmet dome */}
+                <ellipse cx="100" cy="60" rx="72" ry="55" fill="url(#vaderHelmetGrad)" stroke="#555" strokeWidth="1.5" />
+                {/* Helmet ridge line */}
+                <path d="M100,8 L100,90" stroke="#555" strokeWidth="2" fill="none" />
+                {/* Helmet side ridges */}
+                <path d="M55,30 Q70,25 85,30" stroke="#555" strokeWidth="1" fill="none" />
+                <path d="M115,30 Q130,25 145,30" stroke="#555" strokeWidth="1" fill="none" />
+                {/* Face plate / mask */}
+                <path d="M40,75 Q42,55 60,50 L80,48 Q100,46 120,48 L140,50 Q158,55 160,75 L155,130 Q150,155 140,165 L120,178 Q100,185 80,178 L60,165 Q50,155 45,130 Z" fill="url(#vaderFaceGrad)" stroke="#444" strokeWidth="1.5" />
+                {/* Eye lenses - triangular */}
+                <path d="M62,82 L88,75 L88,95 Z" fill="#111" stroke="#c00" strokeWidth="1.5" />
+                <path d="M138,82 L112,75 L112,95 Z" fill="#111" stroke="#c00" strokeWidth="1.5" />
+                {/* Eye lens inner glow */}
+                <path d="M68,83 L85,78 L85,92 Z" fill="none" stroke="#ff2222" strokeWidth="0.5" opacity="0.6" />
+                <path d="M132,83 L115,78 L115,92 Z" fill="none" stroke="#ff2222" strokeWidth="0.5" opacity="0.6" />
+                {/* Nose ridge */}
+                <path d="M95,95 L100,115 L105,95" fill="none" stroke="#555" strokeWidth="1.5" />
+                {/* Mouth grille */}
+                <path d="M72,125 Q86,118 100,118 Q114,118 128,125" fill="none" stroke="#444" strokeWidth="1" />
+                <rect x="75" y="128" width="50" height="25" rx="4" fill="#0a0a0a" stroke="#444" strokeWidth="1" />
+                {/* Grille lines */}
+                <line x1="75" y1="133" x2="125" y2="133" stroke="#333" strokeWidth="0.8" />
+                <line x1="75" y1="138" x2="125" y2="138" stroke="#333" strokeWidth="0.8" />
+                <line x1="75" y1="143" x2="125" y2="143" stroke="#333" strokeWidth="0.8" />
+                <line x1="75" y1="148" x2="125" y2="148" stroke="#333" strokeWidth="0.8" />
+                {/* Grille vertical dividers */}
+                <line x1="88" y1="128" x2="88" y2="153" stroke="#333" strokeWidth="0.5" />
+                <line x1="100" y1="128" x2="100" y2="153" stroke="#333" strokeWidth="0.5" />
+                <line x1="112" y1="128" x2="112" y2="153" stroke="#333" strokeWidth="0.5" />
+                {/* Cheek details */}
+                <path d="M50,100 Q55,90 60,85" stroke="#444" strokeWidth="1" fill="none" />
+                <path d="M150,100 Q145,90 140,85" stroke="#444" strokeWidth="1" fill="none" />
+                {/* Chin guard */}
+                <path d="M70,160 Q85,175 100,178 Q115,175 130,160" fill="none" stroke="#444" strokeWidth="1.5" />
+                {/* Neck / collar area */}
+                <path d="M50,155 L40,185 Q45,200 65,210 L80,215 Q100,220 120,215 L135,210 Q155,200 160,185 L150,155" fill="#111" stroke="#333" strokeWidth="1" />
+                {/* Collar details */}
+                <path d="M55,185 Q100,195 145,185" fill="none" stroke="#333" strokeWidth="0.8" />
+                {/* Chest plate top */}
+                <rect x="80" y="205" width="40" height="20" rx="3" fill="#0a0a0a" stroke="#444" strokeWidth="1" />
+                {/* Chest buttons */}
+                <rect x="85" y="209" width="8" height="5" rx="1" fill="#c00" />
+                <rect x="96" y="209" width="8" height="5" rx="1" fill="#09c" />
+                <rect x="107" y="209" width="8" height="5" rx="1" fill="#888" />
+                <rect x="85" y="217" width="8" height="5" rx="1" fill="#888" />
+                <rect x="96" y="217" width="8" height="5" rx="1" fill="#c00" />
+                <rect x="107" y="217" width="8" height="5" rx="1" fill="#09c" />
+                {/* Helmet shine highlights */}
+                <ellipse cx="80" cy="35" rx="15" ry="8" fill="rgba(255,255,255,0.06)" />
               </g>
             </svg>
             <div className="vader-quote">&ldquo;I HAVE YOU NOW!&rdquo;</div>
