@@ -107,6 +107,9 @@ function App() {
   // Shot processing lock to prevent rapid double-click race condition
   const isProcessingShot = useRef(false);
 
+  // Timer ref for manual-mode AI turn delay (so it can be cancelled on reset)
+  const manualAITimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   // Auto-simulation state
   const [sim, setSim] = useState<SimState>({
     running: false,
@@ -631,6 +634,7 @@ function App() {
 
       if (allShipsSunk(result.ships)) {
         setPhase('gameOver');
+        setGameOverScreen('defeat');
         addMessage('The AI sunk all your ships! You lose.', 'win');
         return;
       }
@@ -691,6 +695,7 @@ function App() {
 
       if (allShipsSunk(result.ships)) {
         setPhase('gameOver');
+        setGameOverScreen('victory');
         addMessage('You sunk all enemy ships! You win!', 'win');
         isProcessingShot.current = false;
         return;
@@ -698,8 +703,9 @@ function App() {
 
       setTurn('ai');
 
-      // AI takes its turn after a short delay
-      setTimeout(() => {
+      // AI takes its turn after a short delay (tracked in ref for cleanup on reset)
+      if (manualAITimerRef.current) clearTimeout(manualAITimerRef.current);
+      manualAITimerRef.current = setTimeout(() => {
         doAITurn(aiState, playerBoard, playerShips);
       }, 600);
     },
@@ -741,6 +747,10 @@ function App() {
       playerAI: createAIState(),
     });
     isProcessingShot.current = false;
+    if (manualAITimerRef.current) {
+      clearTimeout(manualAITimerRef.current);
+      manualAITimerRef.current = null;
+    }
   }, []);
 
   // Toggle simulation pause/resume
@@ -792,6 +802,10 @@ function App() {
       playerAI: createAIState(),
     });
     isProcessingShot.current = false;
+    if (manualAITimerRef.current) {
+      clearTimeout(manualAITimerRef.current);
+      manualAITimerRef.current = null;
+    }
   }, []);
 
   // Get preview cells for placement
